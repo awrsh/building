@@ -20,6 +20,9 @@ export const metadata: Metadata = {
   description: "نمایش سه‌بعدی، شبیه‌سازی ساخت و مدیریت اجرایی ساختمان آزمایشگاه و دفاتر",
 };
 
+/** داشبورد تعاملی کلاینت‌محور؛ validation ناوبری آنی برای این اپ الزامی نیست */
+export const instant = false;
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="fa" dir="rtl" className={`${vazir.variable} h-full antialiased`}>

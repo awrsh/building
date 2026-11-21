@@ -5,6 +5,8 @@ export const metadata: Metadata = {
   title: "مصالح و انبار",
 };
 
+export const instant = false;
+
 export default function Page() {
   return <MaterialView />;
 }

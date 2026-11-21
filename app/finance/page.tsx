@@ -5,6 +5,8 @@ export const metadata: Metadata = {
   title: "مدیریت مالی",
 };
 
+export const instant = false;
+
 export default function Page() {
   return <FinanceView />;
 }

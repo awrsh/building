@@ -5,6 +5,8 @@ export const metadata: Metadata = {
   title: "پنل مدیریت",
 };
 
+export const instant = false;
+
 export default function Page() {
   return <AdminView />;
 }

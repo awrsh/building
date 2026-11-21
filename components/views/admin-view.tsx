@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DocumentsView } from "@/components/views/documents-view";
 import { FinanceView } from "@/components/views/finance-view";
 import { FloorView } from "@/components/views/floor-view";
 import { MaterialView } from "@/components/views/material-view";
 import { TimelineView } from "@/components/views/timeline-view";
-import { Button, Field, Panel, controlClass } from "@/components/ui";
+import { Button, Field, PageHeader, Panel, controlClass } from "@/components/ui";
 import { cloneSeed } from "@/lib/data";
 import { faDate, faToman } from "@/lib/format";
 import { STATUS_LABEL, WORK_STATUSES } from "@/lib/labels";
@@ -30,13 +30,17 @@ export function AdminView() {
   const [draft, setDraft] = useState<ProjectInfo>(state.project);
   const [note, setNote] = useState("");
 
+  useEffect(() => {
+    if (tab === "project") setDraft(state.project);
+  }, [state.project, tab]);
+
   return (
     <div className="h-full overflow-auto p-4 lg:p-6">
-      <div className="mb-4">
-        <h1 className="text-xl font-semibold">پنل مدیریت</h1>
-        <p className="mt-1 text-sm text-muted">تغییرات همین‌جا در مدل سه‌بعدی، داشبورد، مالی و گزارش‌ها دیده می‌شود.</p>
-      </div>
-      <div className="mb-4 flex flex-wrap gap-2">
+      <PageHeader
+        title="پنل مدیریت"
+        description="تغییرات همین‌جا در مدل سه‌بعدی، داشبورد، مالی و گزارش‌ها دیده می‌شود."
+      />
+      <div className="mb-4 flex flex-wrap gap-1.5">
         {TABS.map((item) => (
           <button
             key={item.id}
@@ -45,7 +49,7 @@ export function AdminView() {
               setTab(item.id);
               if (item.id === "project") setDraft(state.project);
             }}
-            className={`h-9 border px-3 text-sm ${tab === item.id ? "border-ink bg-ink text-white" : "border-line bg-surface"}`}
+            className={`h-8 border px-3 text-[12px] ${tab === item.id ? "border-ink bg-ink text-white" : "border-line bg-surface hover:bg-canvas"}`}
           >
             {item.label}
           </button>

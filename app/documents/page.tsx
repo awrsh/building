@@ -5,6 +5,8 @@ export const metadata: Metadata = {
   title: "اسناد و تصاویر",
 };
 
+export const instant = false;
+
 export default function Page() {
   return <DocumentsView />;
 }

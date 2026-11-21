@@ -5,6 +5,8 @@ export const metadata: Metadata = {
   title: "گزارش‌ها",
 };
 
+export const instant = false;
+
 export default function Page() {
   return <ReportsView />;
 }

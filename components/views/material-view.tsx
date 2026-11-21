@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Empty, Field, Meter, Modal, Panel, controlClass } from "@/components/ui";
-import { faDate, faNum, faPercent, faToman, uid } from "@/lib/format";
+import { Button, Empty, Field, Meter, Modal, PageHeader, Panel, controlClass } from "@/components/ui";
+import { faDate, faNum, faPercent, faToman, todayIso, uid } from "@/lib/format";
 import { isLowStock, materialCost, stockOf } from "@/lib/metrics";
 import { useProject } from "@/lib/store";
 import type { MaterialItem } from "@/lib/types";
@@ -18,7 +18,7 @@ function blank(): MaterialItem {
     consumed: 0,
     unitPrice: 0,
     supplier: "",
-    purchaseDate: "2026-11-21",
+    purchaseDate: todayIso(),
   };
 }
 
@@ -32,13 +32,11 @@ export function MaterialView({ embedded = false }: { embedded?: boolean }) {
 
   return (
     <div className={embedded ? "space-y-4" : "h-full overflow-auto p-4 lg:p-6"}>
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold">مصالح و انبار</h1>
-          <p className="mt-1 text-sm text-muted">موجودی، خرید و مصرف. کمبود وقتی موجودی از یک‌چهارم نیاز باقی‌مانده کمتر باشد.</p>
-        </div>
-        <Button onClick={() => setDraft(blank())}>مصالح جدید</Button>
-      </div>
+      <PageHeader
+        title="مصالح و انبار"
+        description="موجودی، خرید و مصرف. کمبود وقتی موجودی از یک‌چهارم نیاز باقی‌مانده کمتر باشد."
+        actions={<Button onClick={() => setDraft(blank())}>مصالح جدید</Button>}
+      />
 
       {alerts.length ? (
         <Panel className="mb-4 border-danger/30 bg-[#FDF6F5] p-4">

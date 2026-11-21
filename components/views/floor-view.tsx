@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { BuildingCanvas } from "@/components/viewer/building-canvas";
 import { SitePhoto } from "@/components/site-photo";
-import { Button, Field, Meter, Panel, StatusPill, controlClass } from "@/components/ui";
+import { Button, Field, Meter, PageHeader, Panel, StatusPill, controlClass } from "@/components/ui";
 import { faNum, faPercent, todayIso, uid } from "@/lib/format";
 import { WORK_STATUSES } from "@/lib/labels";
 import { useProject } from "@/lib/store";
@@ -22,8 +22,19 @@ export function FloorView({ embedded = false }: { embedded?: boolean }) {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const floor = floors.find((item) => item.id === selectedId) ?? null;
-    setDraft(floor ? { ...floor } : null);
+    const floor = floors.find((item) => item.id === selectedId) ?? floors[0] ?? null;
+    if (!floor) {
+      setDraft(null);
+      return;
+    }
+    if (floor.id !== selectedId) {
+      setSelectedId(floor.id);
+      return;
+    }
+    setDraft({ ...floor });
+  }, [selectedId, floors]);
+
+  useEffect(() => {
     setReport("");
     setMessage("");
   }, [selectedId]);
@@ -58,13 +69,11 @@ export function FloorView({ embedded = false }: { embedded?: boolean }) {
 
   return (
     <div className={embedded ? "space-y-4" : "h-full overflow-auto p-4 lg:p-6"}>
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold">طبقات</h1>
-          <p className="mt-1 text-sm text-muted">وضعیت اجرا، گزارش و تصویر هر طبقه. ذخیره، مدل سه‌بعدی را هم به‌روز می‌کند.</p>
-        </div>
-        <Button onClick={addFloor}>طبقه جدید</Button>
-      </div>
+      <PageHeader
+        title="طبقات"
+        description="وضعیت اجرا، گزارش و تصویر هر طبقه. ذخیره، مدل سه‌بعدی را هم به‌روز می‌کند."
+        actions={<Button onClick={addFloor}>طبقه جدید</Button>}
+      />
       <div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
         <Panel className="overflow-hidden">
           {floors.map((floor) => (

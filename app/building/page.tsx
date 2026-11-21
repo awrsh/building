@@ -7,6 +7,8 @@ export const metadata: Metadata = {
   title: "ساختمان سه‌بعدی",
 };
 
+export const instant = false;
+
 export default function Page() {
   return (
     <Suspense fallback={<PageFallback label="در حال بارگذاری مدل…" />}>

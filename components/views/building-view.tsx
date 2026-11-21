@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -62,11 +63,18 @@ export function BuildingView() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3 p-3 lg:flex-row lg:p-4">
-      <aside className="order-2 flex max-h-80 flex-col overflow-hidden border border-line bg-surface lg:order-1 lg:max-h-none lg:h-full lg:w-80">
-        <div className="border-b border-line px-4 py-3">
-          <div className="text-sm font-semibold">طبقات</div>
-          <p className="mt-1 text-[12px] leading-5 text-muted">برای انتخاب، روی مدل یا فهرست کلیک کنید.</p>
+    <div className="flex h-full min-h-0 flex-col gap-2.5 p-2.5 lg:flex-row lg:p-3">
+      <aside className="order-2 flex max-h-80 flex-col overflow-hidden border border-line bg-surface lg:order-1 lg:max-h-none lg:h-full lg:w-72">
+        <div className="border-b border-line px-3.5 py-3">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <div className="text-[13px] font-medium">طبقات</div>
+              <p className="mt-1 text-[11px] leading-5 text-muted">روی مدل یا فهرست کلیک کنید.</p>
+            </div>
+            <Link href="/simulation" className="shrink-0 text-[11px] text-accent hover:underline">
+              شبیه‌سازی
+            </Link>
+          </div>
         </div>
         <div className="min-h-0 flex-1 overflow-auto">
           {floors.map((floor) => {
@@ -116,14 +124,20 @@ export function BuildingView() {
               <Trade label="تأسیسات" value={selected.mep} />
               <Trade label="نازک‌کاری" value={selected.finishing} />
               {selected.notes ? <p className="text-[12px] leading-5 text-muted">{selected.notes}</p> : null}
+              <Link
+                href={`/floors`}
+                className="inline-flex h-8 items-center justify-center border border-line bg-white px-2.5 text-[12px] hover:border-ink/30"
+              >
+                مدیریت طبقه
+              </Link>
             </div>
           ) : (
-            <p className="text-[12px] leading-5 text-muted">طبقه‌ای انتخاب نشده است.</p>
+            <p className="text-[12px] leading-5 text-muted">طبقه‌ای انتخاب نشده است. روی مدل کلیک کنید یا از حالت شفاف/انفجاری برای بررسی اسکلت استفاده کنید.</p>
           )}
         </div>
       </aside>
 
-      <div ref={frame} className="relative order-1 min-h-[440px] flex-1 overflow-hidden border border-line bg-[#E6E3DC] lg:order-2">
+      <div ref={frame} className="relative order-1 min-h-[440px] flex-1 overflow-hidden border border-line bg-[#DCE4EA] lg:order-2">
         <BuildingCanvas
           floors={state.floors}
           stages={state.stages}

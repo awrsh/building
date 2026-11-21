@@ -1,6 +1,7 @@
 import type { Floor, Stage } from "./types";
 
-export const FOOTPRINT = { width: 46, depth: 22 };
+/** ردپای ساختمان نزدیک به حجم‌های مدولار پردیس سیناژن */
+export const FOOTPRINT = { width: 48, depth: 24 };
 
 export interface LayerFlags {
   structure: boolean;
@@ -196,7 +197,9 @@ export function mixHex(from: string, to: string, t: number) {
 }
 
 export function wallColor(kind: FloorKind, finish: number, facade: number) {
-  if (kind === "basement") return mixHex("#8E877E", "#B7B1A8", finish);
-  const plastered = mixHex("#B48362", "#E4DDD2", finish);
-  return mixHex(plastered, "#E4D9C8", facade);
+  // آجر قرمز سیناژن → با پیشرفت نازک‌کاری کمی روشن‌تر می‌شود
+  if (kind === "basement") return mixHex("#7A4A3A", "#9A6A58", finish);
+  const brick = mixHex("#A34422", "#C4683C", finish * 0.45);
+  const clad = mixHex(brick, "#B8BCC0", facade * 0.55);
+  return clad;
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { SitePhoto } from "@/components/site-photo";
-import { Button, Empty, Field, Modal, Panel, controlClass } from "@/components/ui";
+import { Button, Empty, Field, Modal, PageHeader, Panel, controlClass } from "@/components/ui";
 import { faDate, faNum, todayIso, uid } from "@/lib/format";
 import { DOC_CATEGORIES, DOC_LABEL } from "@/lib/labels";
 import { useProject } from "@/lib/store";
@@ -78,16 +78,16 @@ export function DocumentsView({ embedded = false }: { embedded?: boolean }) {
 
   return (
     <div className={embedded ? "space-y-5" : "h-full overflow-auto p-4 lg:p-6"}>
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold">اسناد و تصاویر</h1>
-          <p className="mt-1 text-sm text-muted">نقشه‌ها، قراردادها و گالری کارگاه با نمایش تمام‌صفحه و مقایسه قبل و بعد.</p>
-        </div>
-        <div className="flex gap-2">
-          <Button tone="ghost" onClick={() => setDocOpen(true)}>ثبت سند</Button>
-          <Button onClick={() => setPhotoOpen(true)}>بارگذاری تصویر</Button>
-        </div>
-      </div>
+      <PageHeader
+        title="اسناد و تصاویر"
+        description="نقشه‌ها، قراردادها و گالری کارگاه با نمایش تمام‌صفحه و مقایسه قبل و بعد."
+        actions={
+          <>
+            <Button tone="ghost" onClick={() => setDocOpen(true)}>ثبت سند</Button>
+            <Button onClick={() => setPhotoOpen(true)}>بارگذاری تصویر</Button>
+          </>
+        }
+      />
 
       <div className="mb-3 flex flex-wrap gap-2">
         <button

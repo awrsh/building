@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CategoryChart, ProgressChart } from "@/components/charts";
-import { Button, Field, Meter, Panel, StatusPill, controlClass } from "@/components/ui";
+import { Button, Field, Meter, PageHeader, Panel, StatusPill, controlClass } from "@/components/ui";
 import { exportWorkbook } from "@/lib/export";
 import { faDate, faNum, faPercent, faToman, todayIso } from "@/lib/format";
 import { CATEGORY_LABEL } from "@/lib/labels";
@@ -12,13 +12,13 @@ import { useProject } from "@/lib/store";
 export function ReportsView() {
   const { state, addLog } = useProject();
   const view = snapshot(state);
-  const series = progressSeries(state.stages, state.project.startDate, "2026-11-21");
   const categories = expensesByCategory(state.expenses);
   const delayed = state.stages.filter((stage) => stage.status === "delayed" || stage.delayDays > 0);
   const [busy, setBusy] = useState<"xlsx" | "pdf" | null>(null);
-  const [today, setToday] = useState("2026-11-21");
+  const [today, setToday] = useState(() => todayIso());
   const [log, setLog] = useState({ weather: "آفتابی", crew: 60, summary: "", issues: "" });
   const [saved, setSaved] = useState("");
+  const series = progressSeries(state.stages, state.project.startDate, today);
 
   useEffect(() => {
     setToday(todayIso());
@@ -44,20 +44,18 @@ export function ReportsView() {
   return (
     <div className="h-full overflow-auto p-4 lg:p-6">
       <div className="print-root mx-auto max-w-[1200px]">
-        <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-semibold">گزارش‌ها و تحلیل</h1>
-            <p className="mt-1 text-sm text-muted">
-              {state.project.name} · {state.project.code} · خروجی از داده‌های زنده پروژه
-            </p>
-          </div>
-          <div className="no-print flex gap-2">
-            <Button tone="ghost" onClick={() => void excel()} disabled={busy !== null}>
-              {busy === "xlsx" ? "در حال ساخت…" : "خروجی Excel"}
-            </Button>
-            <Button onClick={pdf} disabled={busy !== null}>خروجی PDF</Button>
-          </div>
-        </div>
+        <PageHeader
+          title="گزارش‌ها و تحلیل"
+          description={`${state.project.name} · ${state.project.code} · خروجی از داده‌های زنده پروژه`}
+          actions={
+            <div className="no-print flex gap-2">
+              <Button tone="ghost" onClick={() => void excel()} disabled={busy !== null}>
+                {busy === "xlsx" ? "در حال ساخت…" : "خروجی Excel"}
+              </Button>
+              <Button onClick={pdf} disabled={busy !== null}>خروجی PDF</Button>
+            </div>
+          }
+        />
 
         <section className="mb-6">
           <h2 className="mb-3 text-sm font-semibold">پیشرفت کلی پروژه</h2>
@@ -177,16 +175,20 @@ export function ReportsView() {
           <h2 className="mb-3 text-sm font-semibold">عملیات روزانه</h2>
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
             <Panel>
-              {state.logs.map((item) => (
-                <div key={item.id} className="border-b border-line px-4 py-3 last:border-b-0">
-                  <div className="flex justify-between text-[12px] text-muted">
-                    <span>{faDate(item.date)}</span>
-                    <span>{item.weather} · {faNum(item.crew)} نفر</span>
+              {state.logs.length ? (
+                state.logs.map((item) => (
+                  <div key={item.id} className="border-b border-line px-4 py-3 last:border-b-0">
+                    <div className="flex justify-between text-[12px] text-muted">
+                      <span>{faDate(item.date)}</span>
+                      <span>{item.weather} · {faNum(item.crew)} نفر</span>
+                    </div>
+                    <p className="mt-1 text-sm">{item.summary}</p>
+                    {item.issues ? <p className="mt-1 text-[12px] text-danger">{item.issues}</p> : null}
                   </div>
-                  <p className="mt-1 text-sm">{item.summary}</p>
-                  {item.issues ? <p className="mt-1 text-[12px] text-danger">{item.issues}</p> : null}
-                </div>
-              ))}
+                ))
+              ) : (
+                <div className="px-4 py-8 text-center text-sm text-muted">گزارش روزانه‌ای ثبت نشده است.</div>
+              )}
             </Panel>
             <Panel className="no-print space-y-3 p-4">
               <div className="text-sm font-medium">ثبت گزارش روزانه</div>

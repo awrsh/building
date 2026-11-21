@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Button, Field, Modal, Panel, StatusPill, controlClass } from "@/components/ui";
-import { faDate, faNum, faPercent, uid } from "@/lib/format";
+import { Button, Field, Modal, PageHeader, Panel, StatusPill, controlClass } from "@/components/ui";
+import { faDate, faNum, faPercent, todayIso, uid } from "@/lib/format";
 import { PRIORITIES, PRIORITY_LABEL, STATUS_LABEL, WORK_STATUSES } from "@/lib/labels";
 import { plannedProgress } from "@/lib/metrics";
 import { useProject } from "@/lib/store";
@@ -34,19 +35,29 @@ function monthsBetween(start: string, end: string) {
   return items;
 }
 
-const emptyStage = (): Stage => ({
-  id: uid("stage"),
-  order: 1,
-  name: "مرحله جدید",
-  description: "",
-  startDate: "2026-11-21",
-  endDate: "2026-12-21",
-  progress: 0,
-  status: "not_started",
-  priority: "medium",
-  dependsOn: [],
-  delayDays: 0,
-});
+function addDays(iso: string, days: number) {
+  const date = new Date(`${iso.slice(0, 10)}T12:00:00`);
+  date.setDate(date.getDate() + days);
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 10);
+}
+
+const emptyStage = (): Stage => {
+  const start = todayIso();
+  return {
+    id: uid("stage"),
+    order: 1,
+    name: "مرحله جدید",
+    description: "",
+    startDate: start,
+    endDate: addDays(start, 30),
+    progress: 0,
+    status: "not_started",
+    priority: "medium",
+    dependsOn: [],
+    delayDays: 0,
+  };
+};
 
 export function TimelineView({ embedded = false }: { embedded?: boolean }) {
   const { state, saveStage, deleteStage } = useProject();
@@ -68,36 +79,44 @@ export function TimelineView({ embedded = false }: { embedded?: boolean }) {
 
   return (
     <div className={embedded ? "space-y-4" : "h-full overflow-auto p-4 lg:p-6"}>
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold">زمان‌بندی ساخت</h1>
-          <p className="mt-1 text-sm text-muted">نمای روزانه، هفتگی و ماهانه با وابستگی و تأخیر.</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {(["day", "week", "month"] as Zoom[]).map((item) => (
-            <button
-              key={item}
-              type="button"
-              onClick={() => setZoom(item)}
-              className={`h-9 border px-3 text-sm ${zoom === item ? "border-ink bg-ink text-white" : "border-line bg-surface"}`}
+      <PageHeader
+        title="زمان‌بندی ساخت"
+        description={
+          <>
+            نمای روزانه، هفتگی و ماهانه با وابستگی و تأخیر.{" "}
+            <Link href="/simulation" className="text-accent hover:underline">شبیه‌سازی سه‌بعدی</Link>
+          </>
+        }
+        actions={
+          <>
+            {(["day", "week", "month"] as Zoom[]).map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => setZoom(item)}
+                className={`h-9 border px-3 text-[13px] ${zoom === item ? "border-ink bg-ink text-white" : "border-line bg-surface"}`}
+              >
+                {item === "day" ? "روزانه" : item === "week" ? "هفتگی" : "ماهانه"}
+              </button>
+            ))}
+            <Button
+              onClick={() => {
+                const stage = emptyStage();
+                stage.order = stages.reduce((max, item) => Math.max(max, item.order), 0) + 1;
+                setDraft(stage);
+              }}
             >
-              {item === "day" ? "روزانه" : item === "week" ? "هفتگی" : "ماهانه"}
-            </button>
-          ))}
-          <Button
-            onClick={() => {
-              const stage = emptyStage();
-              stage.order = stages.reduce((max, item) => Math.max(max, item.order), 0) + 1;
-              setDraft(stage);
-            }}
-          >
-            مرحله جدید
-          </Button>
-        </div>
-      </div>
+              مرحله جدید
+            </Button>
+          </>
+        }
+      />
 
       <Panel className="overflow-auto">
-        <div className="flex min-w-full">
+        {!stages.length ? (
+          <div className="p-6 text-center text-sm text-muted">هنوز مرحله‌ای تعریف نشده است. از «مرحله جدید» شروع کنید.</div>
+        ) : null}
+        <div className={`flex min-w-full ${stages.length ? "" : "hidden"}`}>
           <div className="sticky right-0 z-10 w-60 shrink-0 border-l border-line bg-surface">
             <div className="h-12 border-b border-line px-3 py-3 text-[12px] text-muted">فعالیت</div>
             {stages.map((stage) => (

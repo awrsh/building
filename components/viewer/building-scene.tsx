@@ -9,12 +9,18 @@ import {
   FOOTPRINT,
   floorKind,
   floorLayout,
-  mixHex,
   visualAmounts,
-  wallColor,
   type FloorKind,
   type LayerFlags,
 } from "@/lib/viewer-math";
+import {
+  CG,
+  FacadeFace,
+  GroundCanopyColumns,
+  Mat as FacadeMat,
+  TerraceGreen,
+  massingFor,
+} from "@/components/viewer/cinnagen-facade";
 
 export type CameraPreset = "reset" | "front" | "side" | "top" | "iso";
 
@@ -88,7 +94,7 @@ function Rise({
     const group = ref.current;
     if (!group) return;
     const target = Math.max(0.0008, amount);
-    const next = snap ? target : value.current + (target - value.current) * (1 - Math.exp(-delta * 5));
+    const next = snap ? target : value.current + (target - value.current) * (1 - Math.exp(-delta * 6.5));
     value.current = next;
     group.scale.y = next;
     group.visible = next > 0.02;
@@ -134,108 +140,6 @@ function FloorAnchor({
   });
 
   return <group ref={ref}>{children}</group>;
-}
-
-function at(axis: "x" | "z", along: number, y: number, fixed: number): [number, number, number] {
-  return axis === "z" ? [along, y, fixed] : [fixed, y, along];
-}
-
-function dims(axis: "x" | "z", along: number, y: number, thick: number): [number, number, number] {
-  return axis === "z" ? [along, y, thick] : [thick, y, along];
-}
-
-function WallRun({
-  length,
-  height,
-  kind,
-  axis,
-  fixed,
-  amount,
-  color,
-  facade,
-  opacity,
-  wireframe,
-  door,
-  snap,
-}: {
-  length: number;
-  height: number;
-  kind: FloorKind;
-  axis: "x" | "z";
-  fixed: number;
-  amount: number;
-  color: string;
-  facade: number;
-  opacity: number;
-  wireframe: boolean;
-  door?: boolean;
-  snap?: boolean;
-}) {
-  const bays = kind === "ground" ? 9 : kind === "roof" ? 7 : kind === "basement" ? 8 : 12;
-  const bay = length / bays;
-  const pier = kind === "ground" ? 0.14 : 0.18;
-  const thick = 0.22;
-  const glassH =
-    kind === "ground" ? height * 0.68 : kind === "basement" ? height * 0.14 : kind === "roof" ? height * 0.26 : height * 0.48;
-  const glassBase =
-    kind === "ground" ? height * 0.1 : kind === "basement" ? height * 0.66 : kind === "roof" ? height * 0.52 : height * 0.32;
-  const pierColor = facade > 0.5 && kind !== "basement" ? "#C87532" : kind === "ground" ? "#343432" : color;
-  const nodes: React.ReactNode[] = [];
-
-  for (let index = 0; index < bays; index += 1) {
-    const along = -length / 2 + bay * index + pier / 2;
-    const center = -length / 2 + bay * index + bay / 2;
-    const isDoor = Boolean(door && index === Math.floor(bays / 2));
-    nodes.push(
-      <mesh key={`p-${axis}-${fixed}-${index}`} position={at(axis, along, height / 2, fixed)} castShadow>
-        <boxGeometry args={dims(axis, pier, height, thick)} />
-        <Mat color={pierColor} opacity={opacity} wireframe={wireframe} roughness={0.6} />
-      </mesh>,
-    );
-    if (!wireframe && !isDoor && kind !== "basement") {
-      nodes.push(
-        <mesh key={`g-${axis}-${fixed}-${index}`} position={at(axis, center, glassBase + glassH / 2, fixed)}>
-          <boxGeometry args={dims(axis, Math.max(0.18, bay - pier - 0.12), glassH, 0.045)} />
-          <meshStandardMaterial
-            color={facade > 0.45 ? "#CFE3E2" : "#B7D4D6"}
-            transparent
-            opacity={0.4 * opacity}
-            roughness={0.05}
-            metalness={0.28}
-          />
-        </mesh>,
-      );
-    }
-    if (!wireframe && kind === "basement") {
-      nodes.push(
-        <mesh key={`s-${axis}-${fixed}-${index}`} position={at(axis, center, height * 0.72, fixed)}>
-          <boxGeometry args={dims(axis, bay * 0.42, height * 0.1, 0.05)} />
-          <meshStandardMaterial color="#93B0AE" transparent opacity={0.5 * opacity} roughness={0.14} />
-        </mesh>,
-      );
-    }
-    if (isDoor && !wireframe) {
-      nodes.push(
-        <mesh key={`d-${axis}-${fixed}`} position={at(axis, center, 1.3, fixed)}>
-          <boxGeometry args={dims(axis, Math.max(0.9, bay - pier - 0.25), 2.6, 0.08)} />
-          <Mat color="#262624" opacity={opacity} roughness={0.42} metalness={0.18} />
-        </mesh>,
-      );
-    }
-  }
-
-  nodes.push(
-    <mesh key={`band-${axis}-${fixed}`} position={at(axis, 0, height - 0.15, fixed)} castShadow>
-      <boxGeometry args={dims(axis, length, 0.3, thick + 0.05)} />
-      <Mat color={color} opacity={opacity} wireframe={wireframe} />
-    </mesh>,
-  );
-
-  return (
-    <Rise amount={amount} snap={snap}>
-      {nodes}
-    </Rise>
-  );
 }
 
 function Columns({
@@ -317,6 +221,129 @@ function Beams({
   );
 }
 
+/** هسته عمودی: شفت آسانسور + باکس پله در هر طبقه */
+function VerticalCore({
+  height,
+  amount,
+  opacity,
+  wireframe,
+  transparent,
+  kind,
+  snap,
+}: {
+  height: number;
+  amount: number;
+  opacity: number;
+  wireframe: boolean;
+  transparent: boolean;
+  kind: FloorKind;
+  snap?: boolean;
+}) {
+  const cx = FOOTPRINT.width * 0.18;
+  const shell = transparent ? Math.min(opacity, 0.22) : opacity;
+  const steps = Math.max(10, Math.round(height / 0.26));
+  const riser = height / steps;
+  const stairNodes: React.ReactNode[] = [];
+
+  for (let i = 0; i < steps; i += 1) {
+    const half = Math.floor(steps / 2);
+    const z = i < half ? -1.55 + (i / Math.max(1, half - 1)) * 2.9 : 1.35 - ((i - half) / Math.max(1, steps - half - 1)) * 2.9;
+    stairNodes.push(
+      <mesh key={`st-${i}`} position={[cx - 1.55, riser * i + riser * 0.5, z]} castShadow>
+        <boxGeometry args={[1.65, Math.max(0.07, riser * 0.88), 0.34]} />
+        <Mat color={i % 2 ? "#AEA8A0" : "#9C968E"} opacity={shell} wireframe={wireframe} roughness={0.92} />
+      </mesh>,
+    );
+  }
+
+  return (
+    <Rise amount={amount} snap={snap}>
+      {/* دیوارهای پیرامون هسته (باز برای دیدن داخل) */}
+      <mesh position={[cx, height / 2, -2.55]} castShadow>
+        <boxGeometry args={[6.4, height, 0.22]} />
+        <Mat color="#B3ADA3" opacity={shell} wireframe={wireframe} />
+      </mesh>
+      <mesh position={[cx, height / 2, 2.55]} castShadow>
+        <boxGeometry args={[6.4, height, 0.22]} />
+        <Mat color="#B3ADA3" opacity={shell * 0.85} wireframe={wireframe} />
+      </mesh>
+      <mesh position={[cx - 3.15, height / 2, 0]} castShadow>
+        <boxGeometry args={[0.22, height, 5.1]} />
+        <Mat color="#B3ADA3" opacity={shell} wireframe={wireframe} />
+      </mesh>
+      <mesh position={[cx + 3.15, height / 2, 0]} castShadow>
+        <boxGeometry args={[0.22, height, 5.1]} />
+        <Mat color="#B3ADA3" opacity={shell} wireframe={wireframe} />
+      </mesh>
+      {/* جداکننده آسانسور / پله */}
+      <mesh position={[cx - 0.05, height / 2, 0]} castShadow>
+        <boxGeometry args={[0.18, height, 4.8]} />
+        <Mat color="#A39D95" opacity={shell} wireframe={wireframe} />
+      </mesh>
+      {/* شفت آسانسور */}
+      <mesh position={[cx + 1.55, height / 2, -1.15]} castShadow>
+        <boxGeometry args={[2.5, height, 0.16]} />
+        <Mat color="#8A8580" opacity={shell} wireframe={wireframe} />
+      </mesh>
+      <mesh position={[cx + 1.55, height / 2, 1.15]} castShadow>
+        <boxGeometry args={[2.5, height, 0.16]} />
+        <Mat color="#8A8580" opacity={shell} wireframe={wireframe} />
+      </mesh>
+      {!wireframe ? (
+        <mesh position={[cx + 2.75, height * 0.45, 0]}>
+          <boxGeometry args={[0.05, height * 0.7, 1.9]} />
+          <meshStandardMaterial
+            color="#C5D8DA"
+            transparent
+            opacity={0.42 * Math.max(0.35, shell)}
+            roughness={0.08}
+            metalness={0.35}
+          />
+        </mesh>
+      ) : null}
+      {!wireframe && amount > 0.28 ? (
+        <mesh position={[cx + 1.55, Math.min(height * 0.42, 1.55), 0]} castShadow>
+          <boxGeometry args={[1.9, 2.05, 1.7]} />
+          <Mat color="#C87532" opacity={shell} metalness={0.28} roughness={0.45} />
+        </mesh>
+      ) : null}
+      {[-1.0, 1.0].map((z) => (
+        <mesh key={`rail-${z}`} position={[cx + 2.7, height * 0.5, z]}>
+          <boxGeometry args={[0.07, height * 0.9, 0.07]} />
+          <Mat color="#2E2E2C" opacity={shell} metalness={0.4} roughness={0.35} />
+        </mesh>
+      ))}
+      {stairNodes}
+      <mesh position={[cx - 1.55, 0.1, -1.9]} receiveShadow>
+        <boxGeometry args={[2.2, 0.12, 1.15]} />
+        <Mat color="#C2BBB0" opacity={shell} wireframe={wireframe} />
+      </mesh>
+      <mesh position={[cx - 1.55, height - 0.1, 1.9]} receiveShadow>
+        <boxGeometry args={[2.2, 0.12, 1.15]} />
+        <Mat color="#C2BBB0" opacity={shell} wireframe={wireframe} />
+      </mesh>
+      {/* دست‌انداز پله */}
+      <mesh position={[cx - 0.75, height / 2, 0]}>
+        <boxGeometry args={[0.06, height * 0.92, 4.2]} />
+        <Mat color="#4A4743" opacity={shell * 0.85} metalness={0.25} roughness={0.4} />
+      </mesh>
+      {/* نشانگر بصری آسانسور (بدون Html برای جلوگیری از race در unmount) */}
+      {kind === "ground" && !wireframe ? (
+        <mesh position={[cx + 1.55, height + 0.22, 0]}>
+          <boxGeometry args={[0.9, 0.18, 0.9]} />
+          <Mat color="#C87532" opacity={shell} metalness={0.3} roughness={0.4} />
+        </mesh>
+      ) : null}
+      {kind === "ground" && !wireframe ? (
+        <mesh position={[cx - 1.55, height + 0.22, 0]}>
+          <boxGeometry args={[0.9, 0.18, 0.9]} />
+          <Mat color="#5C584F" opacity={shell} />
+        </mesh>
+      ) : null}
+    </Rise>
+  );
+}
+
 function FloorModel({
   floor,
   base,
@@ -364,18 +391,21 @@ function FloorModel({
     layers,
   });
   const kind = floorKind(floor, topLevel);
-  const { width, depth } = FOOTPRINT;
+  const mass = massingFor(floor.level, kind);
+  const width = FOOTPRINT.width * mass.w;
+  const depth = FOOTPRINT.depth * mass.d;
   const body = dimmed ? 0.32 : 1;
   const shell = wireframe ? 1 : transparent ? 0.2 : body;
   const bones = wireframe ? 1 : transparent ? 0.85 : body;
-  const color = selected ? mixHex(wallColor(kind, amounts.finish, amounts.facade), "#E7B48A", 0.35) : wallColor(kind, amounts.finish, amounts.facade);
   const extra = (exploded ? index * 3.2 : 0) + (selected ? 1.15 : 0);
   const showPipes = amounts.mep > 0.04 && (transparent || wireframe || amounts.walls < 0.62);
   const gear = amounts.equipment > 0.72 ? 3 : amounts.equipment > 0.38 ? 2 : amounts.equipment > 0.06 ? 1 : 0;
+  const facadeAmt = Math.max(amounts.walls, amounts.facade * 0.85);
 
   return (
     <FloorAnchor base={base} extra={extra} hidden={hidden} snap={snap}>
       <group
+        position={[mass.pushX, 0, mass.pushZ]}
         onClick={(event) => {
           event.stopPropagation();
           onSelect?.(selected ? null : floor.id);
@@ -391,7 +421,7 @@ function FloorModel({
         <Rise amount={amounts.slab} snap={snap}>
           <mesh position={[0, 0.16, 0]} receiveShadow castShadow>
             <boxGeometry args={[width, 0.32, depth]} />
-            <Mat color={selected ? "#E8D3C0" : "#D0CAC0"} opacity={shell} wireframe={wireframe} />
+            <Mat color={selected ? "#E8D3C0" : "#C8C2B8"} opacity={shell} wireframe={wireframe} />
             {selected && !wireframe ? <Edges color="#C87532" threshold={12} /> : null}
           </mesh>
         </Rise>
@@ -413,108 +443,110 @@ function FloorModel({
           wireframe={wireframe}
           snap={snap}
         />
-        <Rise amount={amounts.structure} snap={snap}>
-          <mesh position={[width * 0.18, floor.height / 2, 0]} castShadow>
-            <boxGeometry args={[6.4, floor.height, 5.1]} />
-            <Mat color="#B3ADA3" opacity={transparent ? 0.16 : bones} wireframe={wireframe} />
-          </mesh>
+        <VerticalCore
+          height={floor.height}
+          amount={amounts.structure}
+          opacity={bones}
+          wireframe={wireframe}
+          transparent={transparent}
+          kind={kind}
+          snap={snap}
+        />
+        <Rise amount={facadeAmt} snap={snap}>
+          {kind === "roof" ? (
+            <group>
+              <FacadeFace
+                length={width * 0.55}
+                height={floor.height * 0.85}
+                kind="roof"
+                axis="z"
+                fixed={depth * 0.22}
+                opacity={shell}
+                wireframe={wireframe}
+                level={floor.level}
+              />
+              <FacadeFace
+                length={width * 0.55}
+                height={floor.height * 0.85}
+                kind="roof"
+                axis="z"
+                fixed={-depth * 0.22}
+                opacity={shell}
+                wireframe={wireframe}
+                level={floor.level}
+              />
+              <mesh position={[0, floor.height * 0.4, depth / 2 - 0.15]} castShadow>
+                <boxGeometry args={[width * 0.7, 0.85, 0.22]} />
+                <FacadeMat color={CG.panel} opacity={shell} metalness={0.25} roughness={0.45} />
+              </mesh>
+            </group>
+          ) : (
+            <group>
+              <FacadeFace
+                length={width}
+                height={floor.height}
+                kind={kind}
+                axis="z"
+                fixed={depth / 2}
+                opacity={shell}
+                wireframe={wireframe}
+                door={kind === "ground"}
+                level={floor.level}
+              />
+              <FacadeFace
+                length={width}
+                height={floor.height}
+                kind={kind}
+                axis="z"
+                fixed={-depth / 2}
+                opacity={shell}
+                wireframe={wireframe}
+                level={floor.level}
+              />
+              <FacadeFace
+                length={depth}
+                height={floor.height}
+                kind={kind}
+                axis="x"
+                fixed={width / 2}
+                opacity={shell}
+                wireframe={wireframe}
+                level={floor.level}
+              />
+              <FacadeFace
+                length={depth}
+                height={floor.height}
+                kind={kind}
+                axis="x"
+                fixed={-width / 2}
+                opacity={shell}
+                wireframe={wireframe}
+                level={floor.level}
+              />
+            </group>
+          )}
         </Rise>
-        {kind === "roof" ? (
-          <group>
-            <WallRun
-              length={width * 0.46}
-              height={floor.height * 0.82}
-              kind="roof"
-              axis="z"
-              fixed={depth * 0.18}
-              amount={Math.max(amounts.walls, amounts.structure * 0.85)}
-              color={color}
-              facade={amounts.facade}
-              opacity={shell}
-              wireframe={wireframe}
-              snap={snap}
-            />
-            <WallRun
-              length={width * 0.46}
-              height={floor.height * 0.82}
-              kind="roof"
-              axis="z"
-              fixed={-depth * 0.18}
-              amount={Math.max(amounts.walls, amounts.structure * 0.85)}
-              color={color}
-              facade={amounts.facade}
-              opacity={shell}
-              wireframe={wireframe}
-              snap={snap}
-            />
-            <Rise amount={amounts.slab} snap={snap}>
-              <mesh position={[0, floor.height * 0.42, depth / 2 - 0.2]}>
-                <boxGeometry args={[width, 0.9, 0.28]} />
-                <Mat color="#C9C3B8" opacity={shell} wireframe={wireframe} />
+        {kind === "ground" ? (
+          <Rise amount={facadeAmt} snap={snap}>
+            <GroundCanopyColumns width={width} depth={depth} height={floor.height} opacity={body} amount={amounts.facade} />
+            {/* تابلوی قرمز سیناژن روی همکف */}
+            {!wireframe ? (
+              <mesh position={[-width * 0.28, floor.height * 0.72, depth / 2 + 0.35]} castShadow>
+                <boxGeometry args={[4.2, 0.55, 0.08]} />
+                <FacadeMat color="#C0392B" opacity={body} metalness={0.15} roughness={0.55} />
               </mesh>
-              <mesh position={[0, floor.height * 0.42, -depth / 2 + 0.2]}>
-                <boxGeometry args={[width, 0.9, 0.28]} />
-                <Mat color="#C9C3B8" opacity={shell} wireframe={wireframe} />
-              </mesh>
-            </Rise>
-          </group>
-        ) : (
-          <group>
-            <WallRun
-              length={width}
-              height={floor.height}
-              kind={kind}
-              axis="z"
-              fixed={depth / 2}
-              amount={amounts.walls}
-              color={color}
-              facade={amounts.facade}
-              opacity={shell}
-              wireframe={wireframe}
-              door={kind === "ground"}
-              snap={snap}
-            />
-            <WallRun
-              length={width}
-              height={floor.height}
-              kind={kind}
-              axis="z"
-              fixed={-depth / 2}
-              amount={amounts.walls}
-              color={color}
-              facade={amounts.facade}
-              opacity={shell}
-              wireframe={wireframe}
-              snap={snap}
-            />
-            <WallRun
-              length={depth}
-              height={floor.height}
-              kind={kind}
-              axis="x"
-              fixed={width / 2}
-              amount={amounts.walls}
-              color={color}
-              facade={amounts.facade}
-              opacity={shell}
-              wireframe={wireframe}
-              snap={snap}
-            />
-            <WallRun
-              length={depth}
-              height={floor.height}
-              kind={kind}
-              axis="x"
-              fixed={-width / 2}
-              amount={amounts.walls}
-              color={color}
-              facade={amounts.facade}
-              opacity={shell}
-              wireframe={wireframe}
-              snap={snap}
-            />
-          </group>
-        )}
+            ) : null}
+          </Rise>
+        ) : null}
+        {kind !== "basement" && kind !== "ground" ? (
+          <TerraceGreen
+            width={width}
+            depth={depth}
+            y={floor.height}
+            opacity={body}
+            amount={Math.max(amounts.facade, amounts.finish)}
+          />
+        ) : null}
         {showPipes ? (
           <Rise amount={amounts.mep} snap={snap}>
             <mesh position={[0, floor.height - 0.7, 1.1]} rotation={[0, 0, Math.PI / 2]}>
@@ -543,38 +575,24 @@ function FloorModel({
             </mesh>
           </Rise>
         ) : null}
-        {kind === "ground" ? (
-          <Rise amount={amounts.facade} snap={snap}>
-            <mesh position={[0, 3.25, depth / 2 + 1.6]}>
-              <boxGeometry args={[9, 0.12, 3.1]} />
-              <Mat color="#C87532" opacity={body} metalness={0.32} roughness={0.42} />
-            </mesh>
-            {[-3.8, 3.8].map((x) => (
-              <mesh key={x} position={[x, 1.6, depth / 2 + 2.7]}>
-                <boxGeometry args={[0.14, 3.2, 0.14]} />
-                <Mat color="#2E2E2C" opacity={body} />
-              </mesh>
-            ))}
-          </Rise>
-        ) : null}
         {kind === "roof" && gear > 0 ? (
           <group position={[0, floor.height, 0]}>
             {gear >= 1 ? (
               <mesh position={[-8, 1, 2]} castShadow>
                 <boxGeometry args={[5.2, 2, 3]} />
-                <Mat color="#8E9491" metalness={0.38} roughness={0.42} />
+                <Mat color={CG.panelDark} metalness={0.38} roughness={0.42} />
               </mesh>
             ) : null}
             {gear >= 2 ? (
               <mesh position={[-8, 0.55, -2.4]} castShadow>
                 <boxGeometry args={[3.4, 1.1, 2.2]} />
-                <Mat color="#B0B5B2" metalness={0.3} roughness={0.48} />
+                <Mat color={CG.panel} metalness={0.3} roughness={0.48} />
               </mesh>
             ) : null}
             {gear >= 3 ? (
               <mesh position={[10, 1.5, 3]} castShadow>
                 <cylinderGeometry args={[0.45, 0.7, 3, 12]} />
-                <Mat color="#D0CBC2" metalness={0.18} roughness={0.5} />
+                <Mat color={CG.panel} metalness={0.18} roughness={0.5} />
               </mesh>
             ) : null}
           </group>
@@ -600,6 +618,7 @@ function Grade({ y }: { y: number }) {
   const sideW = (outerW - gapW) / 2;
   const sideD = (outerD - gapD) / 2;
   const h = 0.24;
+  const fenceZ = gapD / 2 + 4.5;
   return (
     <group position={[0, y + 0.12, 0]}>
       <mesh position={[0, 0, gapD / 2 + sideD / 2]} receiveShadow>
@@ -621,6 +640,41 @@ function Grade({ y }: { y: number }) {
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.14, outerD / 2 + 8]}>
         <planeGeometry args={[9, 18]} />
         <meshStandardMaterial color="#3C3C3A" roughness={0.96} />
+      </mesh>
+      {/* حصار آجری + نرده فلزی جلوی سایت (شبیه عکس) */}
+      {Array.from({ length: 9 }, (_, i) => {
+        const x = -18 + i * 4.5;
+        return (
+          <group key={i} position={[x, 0, depth / 2 + depth * 0.08 + 3.2]}>
+            <mesh position={[0, 0.85, 0]} castShadow>
+              <boxGeometry args={[0.55, 1.7, 0.55]} />
+              <FacadeMat color={CG.brick} roughness={0.9} />
+            </mesh>
+            {i < 8 ? (
+              <mesh position={[2.25, 1.15, 0]}>
+                <boxGeometry args={[3.8, 0.08, 0.08]} />
+                <FacadeMat color={CG.mullion} metalness={0.55} roughness={0.3} />
+              </mesh>
+            ) : null}
+            {i < 8 ? (
+              <mesh position={[2.25, 0.7, 0]}>
+                <boxGeometry args={[3.8, 0.08, 0.08]} />
+                <FacadeMat color={CG.mullion} metalness={0.55} roughness={0.3} />
+              </mesh>
+            ) : null}
+          </group>
+        );
+      })}
+      {/* فضای سبز جلوی ساختمان */}
+      {[-10, -4, 3, 10].map((x) => (
+        <mesh key={x} position={[x, 0.45, depth / 2 + 5.5]} castShadow>
+          <sphereGeometry args={[0.85, 10, 10]} />
+          <FacadeMat color={CG.green} roughness={1} />
+        </mesh>
+      ))}
+      <mesh position={[22, 0.05, fenceZ]} receiveShadow>
+        <boxGeometry args={[6, 0.1, 4]} />
+        <FacadeMat color="#8A8378" />
       </mesh>
     </group>
   );
@@ -815,8 +869,8 @@ export default function BuildingScene(props: BuildingSceneProps) {
       camera={{ position: [58, 36, 58], fov: 34, near: 0.1, far: 420 }}
       gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}
     >
-      <color attach="background" args={["#E6E3DC"]} />
-      <fog attach="fog" args={["#E6E3DC", 78, 180]} />
+      <color attach="background" args={["#DCE4EA"]} />
+      <fog attach="fog" args={["#DCE4EA", 85, 190]} />
       <SceneBody {...props} snap={reduce} />
     </Canvas>
   );

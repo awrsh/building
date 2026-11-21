@@ -5,6 +5,8 @@ export const metadata: Metadata = {
   title: "شبیه‌سازی ساخت",
 };
 
+export const instant = false;
+
 export default function Page() {
   return <SimulationView />;
 }

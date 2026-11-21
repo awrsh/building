@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { CategoryChart, MonthlyCostChart } from "@/components/charts";
-import { Button, Empty, Field, Modal, Panel, controlClass } from "@/components/ui";
-import { faDate, faNum, faPercent, faToman, uid } from "@/lib/format";
+import { Button, Empty, Field, Modal, PageHeader, Panel, controlClass } from "@/components/ui";
+import { faDate, faNum, faPercent, faToman, todayIso, uid } from "@/lib/format";
 import { CATEGORY_COLOR, CATEGORY_LABEL, EXPENSE_CATEGORIES } from "@/lib/labels";
 import { expensesByCategory, expensesByMonth, snapshot } from "@/lib/metrics";
 import { useProject } from "@/lib/store";
@@ -15,7 +15,7 @@ function blankExpense(): Expense {
     title: "",
     category: "materials",
     amount: 0,
-    date: "2026-11-21",
+    date: todayIso(),
     floorId: null,
     stageId: null,
     vendor: "",
@@ -50,13 +50,11 @@ export function FinanceView({ embedded = false }: { embedded?: boolean }) {
 
   return (
     <div className={embedded ? "space-y-4" : "h-full overflow-auto p-4 lg:p-6"}>
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold">مدیریت مالی</h1>
-          <p className="mt-1 text-sm text-muted">مبالغ به تومان و متصل به طبقه یا مرحله ساخت.</p>
-        </div>
-        <Button onClick={() => setDraft(blankExpense())}>ثبت هزینه</Button>
-      </div>
+      <PageHeader
+        title="مدیریت مالی"
+        description="مبالغ به تومان و متصل به طبقه یا مرحله ساخت."
+        actions={<Button onClick={() => setDraft(blankExpense())}>ثبت هزینه</Button>}
+      />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <Money label="بودجه کل" value={faToman(view.budget)} />
@@ -96,7 +94,7 @@ export function FinanceView({ embedded = false }: { embedded?: boolean }) {
       </div>
 
       <Panel className="mt-4 p-4">
-        <div className="grid gap-3 md:grid-cols-5">
+        <div className="grid gap-3 md:grid-cols-6">
           <input className={controlClass} placeholder="جستجو" value={query} onChange={(event) => setQuery(event.target.value)} />
           <select className={controlClass} value={category} onChange={(event) => setCategory(event.target.value as ExpenseCategory | "all")}>
             <option value="all">همه دسته‌ها</option>
@@ -114,8 +112,20 @@ export function FinanceView({ embedded = false }: { embedded?: boolean }) {
               </option>
             ))}
           </select>
-          <input className={controlClass} type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
-          <input className={controlClass} type="date" value={to} onChange={(event) => setTo(event.target.value)} />
+          <input className={controlClass} type="date" value={from} onChange={(event) => setFrom(event.target.value)} aria-label="از تاریخ" />
+          <input className={controlClass} type="date" value={to} onChange={(event) => setTo(event.target.value)} aria-label="تا تاریخ" />
+          <Button
+            tone="ghost"
+            onClick={() => {
+              setCategory("all");
+              setFloorId("all");
+              setFrom("");
+              setTo("");
+              setQuery("");
+            }}
+          >
+            پاک‌کردن فیلتر
+          </Button>
         </div>
         <div className="mt-3 text-[12px] text-muted">
           {faNum(rows.length)} ردیف · جمع فیلتر {faToman(filteredTotal)}

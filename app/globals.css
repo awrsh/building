@@ -1,15 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --canvas: #f5f4f0;
-  --ink: #252525;
-  --accent: #c87532;
-  --ok: #31966b;
-  --warn: #e6a23c;
-  --danger: #d9534f;
+  --canvas: #f7f6f3;
+  --ink: #1c1c1b;
+  --accent: #b86a2b;
+  --ok: #2f8a62;
+  --warn: #d4922e;
+  --danger: #c94b47;
   --surface: #ffffff;
-  --muted: #6e695f;
-  --line: rgba(37, 37, 37, 0.1);
+  --muted: #7a756c;
+  --line: rgba(28, 28, 27, 0.08);
+  --sidebar: #171716;
+  --sidebar-muted: rgba(255, 255, 255, 0.48);
 }
 
 @theme inline {
@@ -22,6 +24,7 @@
   --color-surface: var(--surface);
   --color-muted: var(--muted);
   --color-line: var(--line);
+  --color-sidebar: var(--sidebar);
   --font-sans: var(--font-vazir), "Vazirmatn", sans-serif;
 }
 
@@ -34,6 +37,21 @@ body {
 body {
   font-family: var(--font-vazir), "Vazirmatn", sans-serif;
   text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a,
+  button,
+  aside {
+    transition:
+      color 160ms ease,
+      background-color 160ms ease,
+      border-color 160ms ease,
+      opacity 160ms ease,
+      width 220ms ease,
+      transform 220ms ease;
+  }
 }
 
 button,
@@ -44,22 +62,28 @@ textarea {
 }
 
 ::selection {
-  background: rgba(200, 117, 50, 0.22);
+  background: rgba(184, 106, 43, 0.18);
 }
 
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d4cfc6;
+  background: #ddd8cf;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #cfc9be;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
 
 input[type="range"] {
-  accent-color: #c87532;
+  accent-color: var(--accent);
 }
 
 @media print {
