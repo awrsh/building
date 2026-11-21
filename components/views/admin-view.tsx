@@ -6,7 +6,7 @@ import { FinanceView } from "@/components/views/finance-view";
 import { FloorView } from "@/components/views/floor-view";
 import { MaterialView } from "@/components/views/material-view";
 import { TimelineView } from "@/components/views/timeline-view";
-import { Button, Field, PageHeader, Panel, controlClass } from "@/components/ui";
+import { Button, Field, PageHeader, Panel, SegButton, controlClass } from "@/components/ui";
 import { cloneSeed } from "@/lib/data";
 import { faDate, faToman } from "@/lib/format";
 import { STATUS_LABEL, WORK_STATUSES } from "@/lib/labels";
@@ -42,17 +42,17 @@ export function AdminView() {
       />
       <div className="mb-4 flex flex-wrap gap-1.5">
         {TABS.map((item) => (
-          <button
+          <SegButton
             key={item.id}
-            type="button"
+            active={tab === item.id}
+            className="h-8 text-[12px]"
             onClick={() => {
               setTab(item.id);
               if (item.id === "project") setDraft(state.project);
             }}
-            className={`h-8 border px-3 text-[12px] ${tab === item.id ? "border-ink bg-ink text-white" : "border-line bg-surface hover:bg-canvas"}`}
           >
             {item.label}
-          </button>
+          </SegButton>
         ))}
       </div>
 

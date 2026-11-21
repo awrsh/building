@@ -49,7 +49,7 @@ export function BuildingCanvas(props: BuildingSceneProps) {
   }, [mounted]);
 
   return (
-    <div ref={ref} className="h-full w-full">
+    <div ref={ref} className="h-full min-h-[280px] w-full">
       {mounted ? (
         <SceneBoundary>
           <Scene {...props} active={active} />

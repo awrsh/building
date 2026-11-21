@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Button, Field, Modal, PageHeader, Panel, StatusPill, controlClass } from "@/components/ui";
+import { Button, Field, Modal, PageHeader, Panel, SegButton, StatusPill, controlClass } from "@/components/ui";
 import { faDate, faNum, faPercent, todayIso, uid } from "@/lib/format";
 import { PRIORITIES, PRIORITY_LABEL, STATUS_LABEL, WORK_STATUSES } from "@/lib/labels";
 import { plannedProgress } from "@/lib/metrics";
@@ -17,7 +17,7 @@ const BAR: Record<WorkStatus, string> = {
   in_progress: "bg-accent",
   delayed: "bg-danger",
   on_hold: "bg-warn",
-  not_started: "bg-[#C8C2B8]",
+  not_started: "bg-white/25",
 };
 
 function daysFrom(start: string, end: string) {
@@ -90,14 +90,9 @@ export function TimelineView({ embedded = false }: { embedded?: boolean }) {
         actions={
           <>
             {(["day", "week", "month"] as Zoom[]).map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setZoom(item)}
-                className={`h-9 border px-3 text-[13px] ${zoom === item ? "border-ink bg-ink text-white" : "border-line bg-surface"}`}
-              >
+              <SegButton key={item} active={zoom === item} onClick={() => setZoom(item)}>
                 {item === "day" ? "روزانه" : item === "week" ? "هفتگی" : "ماهانه"}
-              </button>
+              </SegButton>
             ))}
             <Button
               onClick={() => {
@@ -117,11 +112,16 @@ export function TimelineView({ embedded = false }: { embedded?: boolean }) {
           <div className="p-6 text-center text-sm text-muted">هنوز مرحله‌ای تعریف نشده است. از «مرحله جدید» شروع کنید.</div>
         ) : null}
         <div className={`flex min-w-full ${stages.length ? "" : "hidden"}`}>
-          <div className="sticky right-0 z-10 w-60 shrink-0 border-l border-line bg-surface">
+          <div className="sticky right-0 z-10 w-60 shrink-0 border-l border-line bg-[#0a101c]/95">
             <div className="h-12 border-b border-line px-3 py-3 text-[12px] text-muted">فعالیت</div>
             {stages.map((stage) => (
-              <button key={stage.id} type="button" onClick={() => setDraft(stage)} className="block h-16 w-full border-b border-line px-3 py-2 text-right hover:bg-canvas">
-                <div className="truncate text-sm">{stage.name}</div>
+              <button
+                key={stage.id}
+                type="button"
+                onClick={() => setDraft(stage)}
+                className="block h-16 w-full border-b border-line/60 px-3 py-2 text-right hover:bg-white/4"
+              >
+                <div className="truncate text-sm text-ink">{stage.name}</div>
                 <div className="mt-1 text-[11px] text-muted">{PRIORITY_LABEL[stage.priority]}</div>
               </button>
             ))}
@@ -303,7 +303,9 @@ function StageForm({
                       dependsOn: on ? draft.dependsOn.filter((id) => id !== stage.id) : [...draft.dependsOn, stage.id],
                     })
                   }
-                  className={`border px-2 py-1 text-[12px] ${on ? "border-ink bg-ink text-white" : "border-line"}`}
+                  className={`rounded-md border px-2 py-1 text-[12px] ${
+                    on ? "border-accent/50 bg-accent/15 text-accent" : "border-line text-muted hover:text-ink"
+                  }`}
                 >
                   {stage.name}
                 </button>

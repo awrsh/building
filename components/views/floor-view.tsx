@@ -81,10 +81,10 @@ export function FloorView({ embedded = false }: { embedded?: boolean }) {
               key={floor.id}
               type="button"
               onClick={() => setSelectedId(floor.id)}
-              className={`block w-full border-b border-line px-4 py-3 text-right last:border-b-0 ${floor.id === selected?.id ? "bg-[#F8F1EA]" : ""}`}
+              className={`block w-full border-b border-line/60 px-4 py-3 text-right last:border-b-0 ${floor.id === selected?.id ? "bg-accent/10" : "hover:bg-white/4"}`}
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-medium">{floor.name}</span>
+                <span className="text-sm font-medium text-ink">{floor.name}</span>
                 <StatusPill status={floor.status} />
               </div>
               <div className="mt-1 text-[12px] text-muted">{floor.program}</div>
@@ -152,7 +152,7 @@ export function FloorView({ embedded = false }: { embedded?: boolean }) {
                 </Button>
                 <Link
                   href={`/building?floor=${selected.id}`}
-                  className="inline-flex h-10 items-center justify-center border border-line bg-white px-3.5 text-sm hover:border-ink/30"
+                  className="inline-flex h-9 items-center justify-center rounded-lg border border-accent/30 bg-accent/10 px-3.5 text-[13px] text-accent hover:border-accent/50"
                 >
                   نمایش در مدل
                 </Link>

@@ -20,10 +20,12 @@ import type { ProgressPoint } from "@/lib/metrics";
 import type { ExpenseCategory } from "@/lib/types";
 
 const tooltipStyle = {
-  border: "1px solid rgba(37,37,37,0.12)",
-  borderRadius: 0,
+  background: "rgba(10, 16, 28, 0.95)",
+  border: "1px solid rgba(34, 211, 238, 0.25)",
+  borderRadius: 10,
   fontSize: 12,
   fontFamily: "inherit",
+  color: "#e8eef8",
 };
 
 export function ProgressChart({ points }: { points: ProgressPoint[] }) {
@@ -32,21 +34,24 @@ export function ProgressChart({ points }: { points: ProgressPoint[] }) {
     <div className="h-full w-full" dir="ltr">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={points} margin={{ top: 12, right: 8, left: 0, bottom: 0 }}>
-          <CartesianGrid stroke="rgba(37,37,37,0.08)" vertical={false} />
-          <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#6E695F" }} axisLine={false} tickLine={false} interval={2} />
+          <defs>
+            <linearGradient id="progressFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.35} />
+              <stop offset="100%" stopColor="#a855f7" stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid stroke="rgba(148,163,184,0.12)" vertical={false} />
+          <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} interval={2} />
           <YAxis
             domain={[0, 100]}
             tickFormatter={(value) => faNum(Number(value), 0)}
-            tick={{ fontSize: 11, fill: "#6E695F" }}
+            tick={{ fontSize: 11, fill: "#94a3b8" }}
             axisLine={false}
             tickLine={false}
             width={32}
           />
-          <Tooltip
-            formatter={(value) => faPercent(Number(value))}
-            contentStyle={tooltipStyle}
-          />
-          <Area type="monotone" dataKey="progress" name="پیشرفت" stroke="#C87532" strokeWidth={2} fill="#C87532" fillOpacity={0.16} />
+          <Tooltip formatter={(value) => faPercent(Number(value))} contentStyle={tooltipStyle} />
+          <Area type="monotone" dataKey="progress" name="پیشرفت" stroke="#22d3ee" strokeWidth={2} fill="url(#progressFill)" />
         </AreaChart>
       </ResponsiveContainer>
     </div>
@@ -68,7 +73,7 @@ export function CategoryChart({
     <div className="h-52 w-full" dir="ltr">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
-          <Pie data={data} dataKey="value" nameKey="name" innerRadius={52} outerRadius={76} paddingAngle={2} stroke="#fff">
+          <Pie data={data} dataKey="value" nameKey="name" innerRadius={52} outerRadius={76} paddingAngle={2} stroke="#0a101c">
             {data.map((item) => (
               <Cell key={item.name} fill={item.color} />
             ))}
@@ -86,17 +91,17 @@ export function MonthlyCostChart({ items }: { items: { label: string; value: num
     <div className="h-56 w-full" dir="ltr">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={items} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-          <CartesianGrid stroke="rgba(37,37,37,0.08)" vertical={false} />
-          <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#6E695F" }} axisLine={false} tickLine={false} />
+          <CartesianGrid stroke="rgba(148,163,184,0.12)" vertical={false} />
+          <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
           <YAxis
             tickFormatter={(value) => faNum(Number(value) / 1_000_000_000, 0)}
-            tick={{ fontSize: 11, fill: "#6E695F" }}
+            tick={{ fontSize: 11, fill: "#94a3b8" }}
             axisLine={false}
             tickLine={false}
             width={28}
           />
           <Tooltip formatter={(value) => faToman(Number(value))} contentStyle={tooltipStyle} />
-          <Bar dataKey="value" name="هزینه" fill="#252525" maxBarSize={28} />
+          <Bar dataKey="value" name="هزینه" fill="#22d3ee" maxBarSize={28} radius={[6, 6, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>

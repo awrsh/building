@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { SitePhoto } from "@/components/site-photo";
-import { Button, Empty, Field, Modal, PageHeader, Panel, controlClass } from "@/components/ui";
+import { Button, Empty, Field, Modal, PageHeader, Panel, SegButton, controlClass } from "@/components/ui";
 import { faDate, faNum, todayIso, uid } from "@/lib/format";
 import { DOC_CATEGORIES, DOC_LABEL } from "@/lib/labels";
 import { useProject } from "@/lib/store";
@@ -90,22 +90,13 @@ export function DocumentsView({ embedded = false }: { embedded?: boolean }) {
       />
 
       <div className="mb-3 flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => setDocCat("all")}
-          className={`h-9 border px-3 text-sm ${docCat === "all" ? "border-ink bg-ink text-white" : "border-line bg-surface"}`}
-        >
+        <SegButton active={docCat === "all"} onClick={() => setDocCat("all")}>
           همه اسناد
-        </button>
+        </SegButton>
         {DOC_CATEGORIES.map((category) => (
-          <button
-            key={category}
-            type="button"
-            onClick={() => setDocCat(category)}
-            className={`h-9 border px-3 text-sm ${docCat === category ? "border-ink bg-ink text-white" : "border-line bg-surface"}`}
-          >
+          <SegButton key={category} active={docCat === category} onClick={() => setDocCat(category)}>
             {DOC_LABEL[category]}
-          </button>
+          </SegButton>
         ))}
       </div>
 
@@ -218,7 +209,7 @@ export function DocumentsView({ embedded = false }: { embedded?: boolean }) {
       />
 
       {activePhoto ? (
-        <div className="fixed inset-0 z-50 flex flex-col bg-ink/80 p-4" onClick={() => setLightbox(null)}>
+        <div className="fixed inset-0 z-50 flex flex-col bg-black/85 p-4 backdrop-blur-sm" onClick={() => setLightbox(null)}>
           <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col" onClick={(event) => event.stopPropagation()}>
             <div className="mb-3 flex items-center justify-between text-white">
               <div>

@@ -31,12 +31,12 @@ export const CATEGORY_LABEL: Record<ExpenseCategory, string> = {
 };
 
 export const CATEGORY_COLOR: Record<ExpenseCategory, string> = {
-  materials: "#C87532",
-  labor: "#252525",
-  contractors: "#6E695F",
-  equipment: "#31966B",
-  transport: "#3E6E8C",
-  overhead: "#E6A23C",
+  materials: "#22d3ee",
+  labor: "#a855f7",
+  contractors: "#818cf8",
+  equipment: "#34d399",
+  transport: "#38bdf8",
+  overhead: "#fbbf24",
 };
 
 export const DOC_LABEL: Record<DocCategory, string> = {

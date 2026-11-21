@@ -39,11 +39,14 @@ export function MaterialView({ embedded = false }: { embedded?: boolean }) {
       />
 
       {alerts.length ? (
-        <Panel className="mb-4 border-danger/30 bg-[#FDF6F5] p-4">
+        <Panel className="mb-4 border-danger/35 bg-danger/10 p-4">
           <div className="text-sm font-semibold text-danger">هشدار کمبود</div>
           <div className="mt-2 flex flex-wrap gap-2">
             {alerts.map((item) => (
-              <span key={item.id} className="border border-danger/20 bg-white px-2 py-1 text-[12px]">
+              <span
+                key={item.id}
+                className="rounded-lg border border-danger/30 bg-[#0b1220] px-2.5 py-1.5 text-[12px] text-ink"
+              >
                 {item.name} · موجودی {faNum(stockOf(item))} {item.unit}
               </span>
             ))}

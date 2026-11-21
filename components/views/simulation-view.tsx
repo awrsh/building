@@ -63,17 +63,17 @@ export function SimulationView() {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-2.5 p-2.5 lg:flex-row lg:p-3">
-      <aside className="order-2 flex max-h-72 flex-col overflow-hidden border border-line bg-surface lg:order-1 lg:max-h-none lg:h-full lg:w-[300px]">
+      <aside className="order-2 flex max-h-72 flex-col overflow-hidden rounded-2xl border border-accent/15 bg-[#0a101c]/92 lg:order-1 lg:max-h-none lg:h-full lg:w-[300px]">
         <div className="border-b border-line px-3.5 py-3">
           <div className="text-[10px] tracking-wide text-muted">مرحله · {faNum(index + 1)} / {faNum(stages.length)}</div>
-          <h1 className="mt-1 text-[15px] font-semibold leading-6 tracking-tight">{stage?.name ?? "—"}</h1>
+          <h1 className="mt-1 text-[15px] font-semibold leading-6 tracking-tight text-ink">{stage?.name ?? "—"}</h1>
           <div className="mt-2 flex items-center gap-2">
             {stage ? <StatusPill status={stage.status} /> : null}
             <span className="text-[12px] text-muted">{faPercent(t * 100, 0)} کل · {faPercent(stageLocal * 100, 0)} مرحله</span>
           </div>
           <div className="mt-3 space-y-2">
-            <Meter value={t * 100} />
-            <Meter value={stageLocal * 100} tone="ink" />
+            <Meter value={t * 100} tone="gradient" />
+            <Meter value={stageLocal * 100} tone="accent" />
           </div>
           <p className="mt-3 text-[13px] leading-6 text-muted">{stage?.description}</p>
           {stage ? (
@@ -91,22 +91,26 @@ export function SimulationView() {
                 key={item.id}
                 type="button"
                 onClick={() => jump(itemIndex)}
-                className={`block w-full border-b border-line px-4 py-3 text-right transition-colors ${
-                  active ? "bg-[#F8F1EA]" : "hover:bg-canvas"
+                className={`block w-full border-b border-line/60 px-4 py-3 text-right transition-colors ${
+                  active ? "bg-accent/10" : "hover:bg-white/4"
                 }`}
               >
                 <div className="flex items-center justify-between gap-3">
-                  <span className="flex items-center gap-2 text-sm">
+                  <span className="flex items-center gap-2 text-sm text-ink">
                     <span
-                      className={`grid h-5 w-5 place-items-center text-[10px] ${
-                        done ? "bg-ok text-white" : active ? "bg-accent text-white" : "bg-[#E8E4DC] text-muted"
+                      className={`grid h-5 w-5 place-items-center rounded-md text-[10px] ${
+                        done
+                          ? "bg-ok/20 text-ok"
+                          : active
+                            ? "bg-accent/20 text-accent"
+                            : "bg-white/8 text-muted"
                       }`}
                     >
                       {faNum(itemIndex + 1)}
                     </span>
                     {item.name}
                   </span>
-                  <span className="text-[11px] text-muted">{faPercent(item.progress, 0)}</span>
+                  <span className="text-[11px] text-accent">{faPercent(item.progress, 0)}</span>
                 </div>
               </button>
             );
@@ -114,7 +118,7 @@ export function SimulationView() {
         </div>
       </aside>
 
-      <div className="order-1 flex min-h-[480px] flex-1 flex-col border border-line bg-[#DCE4EA] lg:order-2">
+      <div className="order-1 flex min-h-[480px] flex-1 flex-col overflow-hidden rounded-2xl border border-accent/20 bg-[#030712] lg:order-2">
         <div className="relative min-h-0 flex-1">
           <BuildingCanvas
             floors={state.floors}
@@ -132,9 +136,9 @@ export function SimulationView() {
             autoRotate={playing && t < 0.08}
           />
           <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-3">
-            <div className="max-w-md border border-ink/10 bg-white/92 px-3 py-2 shadow-sm">
-              <div className="text-[11px] text-muted">شبیه‌سازی ساخت</div>
-              <div className="mt-0.5 text-sm font-semibold">{stage?.name ?? "آماده‌سازی"}</div>
+            <div className="max-w-md rounded-xl border border-accent/25 bg-[#030712]/85 px-3 py-2 backdrop-blur">
+              <div className="text-[11px] text-accent">شبیه‌سازی ساخت</div>
+              <div className="mt-0.5 text-sm font-semibold text-ink">{stage?.name ?? "آماده‌سازی"}</div>
               <div className="mt-1 text-[12px] text-muted">{faPercent(t * 100, 0)} تکمیل انیمیشن</div>
             </div>
             {!playing && t === 0 ? (
@@ -152,7 +156,7 @@ export function SimulationView() {
             ) : null}
           </div>
         </div>
-        <div className="space-y-3 border-t border-line bg-surface p-3">
+        <div className="space-y-3 border-t border-line bg-[#0a101c]/95 p-3">
           <div className="space-y-2">
             <div className="flex">
               {stages.map((item, itemIndex) => (
@@ -165,7 +169,7 @@ export function SimulationView() {
                 >
                   <span
                     className={`h-2 w-2 rounded-full ${
-                      itemIndex < index ? "bg-ok" : itemIndex === index ? "bg-accent" : "bg-[#D5CFC4]"
+                      itemIndex < index ? "bg-ok" : itemIndex === index ? "bg-accent" : "bg-white/20"
                     }`}
                   />
                 </button>
@@ -214,7 +218,7 @@ export function SimulationView() {
               <select
                 value={speed}
                 onChange={(event) => setSpeed(Number(event.target.value))}
-                className="h-8 border border-line bg-white px-2 text-ink"
+                className="h-8 rounded-lg border border-line bg-[#0b1220] px-2 text-ink"
               >
                 <option value={0.5}>۰٫۵×</option>
                 <option value={1}>۱×</option>

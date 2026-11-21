@@ -12,9 +12,7 @@ export function Panel({
   children: React.ReactNode;
   className?: string;
 }) {
-  return (
-    <section className={`border border-line/80 bg-surface ${className}`}>{children}</section>
-  );
+  return <section className={`glass ${className}`}>{children}</section>;
 }
 
 export function PageHeader({
@@ -51,17 +49,17 @@ export function Button({
   disabled?: boolean;
 }) {
   const tones = {
-    ink: "bg-ink text-white hover:bg-black",
-    accent: "bg-accent text-white hover:bg-[#a45d24]",
-    ghost: "border border-line bg-surface text-ink hover:bg-canvas",
-    danger: "border border-danger/25 bg-surface text-danger hover:bg-danger/5",
+    ink: "bg-ink/10 text-ink border border-line hover:border-accent/40 hover:text-accent",
+    accent: "bg-accent/15 text-accent border border-accent/40 hover:bg-accent/25 shadow-[0_0_16px_rgba(34,211,238,0.15)]",
+    ghost: "border border-line bg-transparent text-muted hover:text-ink hover:border-accent/30",
+    danger: "border border-danger/30 bg-danger/10 text-danger hover:bg-danger/15",
   };
   return (
     <button
       type={type}
       disabled={disabled}
       onClick={onClick}
-      className={`inline-flex h-9 items-center justify-center gap-2 px-3.5 text-[13px] font-medium transition-colors disabled:opacity-40 ${tones[tone]}`}
+      className={`inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3.5 text-[13px] font-medium transition-colors disabled:opacity-40 ${tones[tone]}`}
     >
       {children}
     </button>
@@ -84,10 +82,10 @@ export function ToolButton({
       type="button"
       title={title}
       onClick={onClick}
-      className={`inline-flex h-7 items-center gap-1.5 border px-2 text-[11px] transition-colors ${
+      className={`inline-flex h-7 items-center gap-1.5 rounded-md border px-2 text-[11px] transition-colors ${
         active
-          ? "border-ink bg-ink text-white"
-          : "border-line/90 bg-surface/95 text-ink hover:border-ink/25"
+          ? "border-accent/50 bg-accent/15 text-accent shadow-[0_0_12px_rgba(34,211,238,0.2)]"
+          : "border-line bg-surface/80 text-muted hover:border-accent/30 hover:text-ink"
       }`}
     >
       {children}
@@ -114,7 +112,7 @@ export function Field({
 }
 
 export const controlClass =
-  "h-9 w-full border border-line bg-surface px-3 text-[13px] text-ink outline-none transition-colors placeholder:text-muted/60 focus:border-ink/40";
+  "h-9 w-full rounded-lg border border-line bg-[#0b1220] px-3 text-[13px] text-ink outline-none transition-colors placeholder:text-muted/50 focus:border-accent/50";
 
 export function Modal({
   open,
@@ -141,14 +139,14 @@ export function Modal({
   if (!open || typeof document === "undefined") return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 grid place-items-center bg-ink/40 p-4 backdrop-blur-[2px]" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4 backdrop-blur-sm" onMouseDown={onClose}>
       <div
-        className={`max-h-[90vh] w-full overflow-auto border border-line bg-surface ${wide ? "max-w-3xl" : "max-w-lg"}`}
+        className={`glass max-h-[90vh] w-full overflow-auto ${wide ? "max-w-3xl" : "max-w-lg"}`}
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
           <h2 className="text-[15px] font-semibold tracking-tight">{title}</h2>
-          <button type="button" onClick={onClose} className="text-[12px] text-muted hover:text-ink">
+          <button type="button" onClick={onClose} className="text-[12px] text-muted hover:text-accent">
             بستن
           </button>
         </div>
@@ -160,16 +158,16 @@ export function Modal({
 }
 
 const STATUS_CLASS: Record<WorkStatus, string> = {
-  not_started: "bg-[#F0EEEA] text-[#5F5A52]",
-  in_progress: "bg-[#F7EDE3] text-[#8A4E1D]",
-  completed: "bg-[#E8F3ED] text-[#1F6A48]",
-  delayed: "bg-[#F8EAEA] text-[#A33B38]",
-  on_hold: "bg-[#F8F1E3] text-[#8A6818]",
+  not_started: "bg-white/5 text-muted border border-line",
+  in_progress: "bg-accent/10 text-accent border border-accent/25",
+  completed: "bg-ok/10 text-ok border border-ok/25",
+  delayed: "bg-danger/10 text-danger border border-danger/25",
+  on_hold: "bg-warn/10 text-warn border border-warn/25",
 };
 
 export function StatusPill({ status }: { status: WorkStatus }) {
   return (
-    <span className={`inline-flex h-6 items-center px-2 text-[11px] font-medium tracking-wide ${STATUS_CLASS[status]}`}>
+    <span className={`inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-medium tracking-wide ${STATUS_CLASS[status]}`}>
       {STATUS_LABEL[status]}
     </span>
   );
@@ -180,7 +178,7 @@ export function Meter({
   tone = "accent",
 }: {
   value: number;
-  tone?: "accent" | "ok" | "warn" | "danger" | "ink";
+  tone?: "accent" | "ok" | "warn" | "danger" | "ink" | "gradient";
 }) {
   const width = Math.max(0, Math.min(100, value));
   const color = {
@@ -188,17 +186,48 @@ export function Meter({
     ok: "bg-ok",
     warn: "bg-warn",
     danger: "bg-danger",
-    ink: "bg-ink",
+    ink: "bg-ink/70",
+    gradient: "meter-gradient",
   }[tone];
   return (
-    <div className="h-1 w-full bg-[#EBE7E0]">
-      <div className={`h-full ${color}`} style={{ width: `${width}%` }} />
+    <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/8">
+      <div className={`h-full rounded-full ${color}`} style={{ width: `${width}%` }} />
     </div>
   );
 }
 
 export function Empty({ children }: { children: React.ReactNode }) {
   return (
-    <div className="border border-dashed border-line px-4 py-10 text-center text-[13px] text-muted">{children}</div>
+    <div className="rounded-xl border border-dashed border-line px-4 py-10 text-center text-[13px] text-muted">{children}</div>
   );
 }
+
+/** Active/inactive segment for filters & tabs on dark glass UI */
+export function SegButton({
+  children,
+  active,
+  onClick,
+  className = "",
+}: {
+  children: React.ReactNode;
+  active?: boolean;
+  onClick?: () => void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`h-9 rounded-lg border px-3 text-[13px] transition-colors ${
+        active
+          ? "border-accent/50 bg-accent/15 text-accent shadow-[0_0_12px_rgba(34,211,238,0.15)]"
+          : "border-line bg-white/5 text-muted hover:border-accent/30 hover:text-ink"
+      } ${className}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+export const rowActive = "bg-accent/10 border-accent/20";
+export const rowHover = "hover:bg-white/4";

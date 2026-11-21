@@ -2,7 +2,7 @@
 
 import { Edges, Grid, Html, OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useLayoutEffect, useRef, useState } from "react";
+import { createContext, useContext, useLayoutEffect, useRef } from "react";
 import * as THREE from "three";
 import type { Floor, Stage } from "@/lib/types";
 import {
@@ -41,7 +41,11 @@ export interface BuildingSceneProps {
   presetNonce: number;
   compact?: boolean;
   active?: boolean;
+  /** حالت هولوگرام فیروزه‌ای شبیه Digital Twin */
+  holo?: boolean;
 }
+
+const HoloContext = createContext(false);
 
 function Mat({
   color,
@@ -56,6 +60,21 @@ function Mat({
   roughness?: number;
   metalness?: number;
 }) {
+  const holo = useContext(HoloContext);
+  if (holo) {
+    return (
+      <meshStandardMaterial
+        color="#22d3ee"
+        emissive="#0e7490"
+        emissiveIntensity={0.65}
+        roughness={0.2}
+        metalness={0.75}
+        transparent
+        opacity={Math.min(0.45, opacity * 0.7)}
+        wireframe
+      />
+    );
+  }
   return (
     <meshStandardMaterial
       color={color}
@@ -401,6 +420,7 @@ function FloorModel({
   const showPipes = amounts.mep > 0.04 && (transparent || wireframe || amounts.walls < 0.62);
   const gear = amounts.equipment > 0.72 ? 3 : amounts.equipment > 0.38 ? 2 : amounts.equipment > 0.06 ? 1 : 0;
   const facadeAmt = Math.max(amounts.walls, amounts.facade * 0.85);
+  const holo = useContext(HoloContext);
 
   return (
     <FloorAnchor base={base} extra={extra} hidden={hidden} snap={snap}>
@@ -421,8 +441,8 @@ function FloorModel({
         <Rise amount={amounts.slab} snap={snap}>
           <mesh position={[0, 0.16, 0]} receiveShadow castShadow>
             <boxGeometry args={[width, 0.32, depth]} />
-            <Mat color={selected ? "#E8D3C0" : "#C8C2B8"} opacity={shell} wireframe={wireframe} />
-            {selected && !wireframe ? <Edges color="#C87532" threshold={12} /> : null}
+            <Mat color={selected ? "#E8D3C0" : "#C8C2B8"} opacity={shell} wireframe={wireframe || holo} />
+            {selected || holo ? <Edges color={holo ? "#22d3ee" : "#C87532"} threshold={12} /> : null}
           </mesh>
         </Rise>
         <Columns
@@ -453,7 +473,12 @@ function FloorModel({
           snap={snap}
         />
         <Rise amount={facadeAmt} snap={snap}>
-          {kind === "roof" ? (
+          {holo ? (
+            <mesh position={[0, floor.height / 2, 0]}>
+              <boxGeometry args={[width, floor.height, depth]} />
+              <Mat color="#22d3ee" opacity={0.4} wireframe />
+            </mesh>
+          ) : kind === "roof" ? (
             <group>
               <FacadeFace
                 length={width * 0.55}
@@ -526,10 +551,9 @@ function FloorModel({
             </group>
           )}
         </Rise>
-        {kind === "ground" ? (
+        {!holo && kind === "ground" ? (
           <Rise amount={facadeAmt} snap={snap}>
             <GroundCanopyColumns width={width} depth={depth} height={floor.height} opacity={body} amount={amounts.facade} />
-            {/* تابلوی قرمز سیناژن روی همکف */}
             {!wireframe ? (
               <mesh position={[-width * 0.28, floor.height * 0.72, depth / 2 + 0.35]} castShadow>
                 <boxGeometry args={[4.2, 0.55, 0.08]} />
@@ -538,7 +562,7 @@ function FloorModel({
             ) : null}
           </Rise>
         ) : null}
-        {kind !== "basement" && kind !== "ground" ? (
+        {!holo && kind !== "basement" && kind !== "ground" ? (
           <TerraceGreen
             width={width}
             depth={depth}
@@ -599,7 +623,7 @@ function FloorModel({
         ) : null}
         {selected || exploded ? (
           <Html position={[0, floor.height + 0.7, 0]} center distanceFactor={38} zIndexRange={[20, 0]} style={{ pointerEvents: "none" }}>
-            <div className="whitespace-nowrap border border-ink/10 bg-white/92 px-2 py-1 text-[11px] text-ink">
+            <div className="whitespace-nowrap rounded-md border border-accent/30 bg-[#030712]/90 px-2 py-1 text-[11px] text-ink backdrop-blur">
               {floor.name}
             </div>
           </Html>
@@ -623,23 +647,23 @@ function Grade({ y }: { y: number }) {
     <group position={[0, y + 0.12, 0]}>
       <mesh position={[0, 0, gapD / 2 + sideD / 2]} receiveShadow>
         <boxGeometry args={[outerW, h, sideD]} />
-        <meshStandardMaterial color="#D9D3C8" roughness={1} />
+        <meshStandardMaterial color="#151d2e" roughness={1} />
       </mesh>
       <mesh position={[0, 0, -(gapD / 2 + sideD / 2)]} receiveShadow>
         <boxGeometry args={[outerW, h, sideD]} />
-        <meshStandardMaterial color="#D9D3C8" roughness={1} />
+        <meshStandardMaterial color="#151d2e" roughness={1} />
       </mesh>
       <mesh position={[gapW / 2 + sideW / 2, 0, 0]} receiveShadow>
         <boxGeometry args={[sideW, h, gapD]} />
-        <meshStandardMaterial color="#D9D3C8" roughness={1} />
+        <meshStandardMaterial color="#151d2e" roughness={1} />
       </mesh>
       <mesh position={[-(gapW / 2 + sideW / 2), 0, 0]} receiveShadow>
         <boxGeometry args={[sideW, h, gapD]} />
-        <meshStandardMaterial color="#D9D3C8" roughness={1} />
+        <meshStandardMaterial color="#151d2e" roughness={1} />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.14, outerD / 2 + 8]}>
         <planeGeometry args={[9, 18]} />
-        <meshStandardMaterial color="#3C3C3A" roughness={0.96} />
+        <meshStandardMaterial color="#0d121c" roughness={0.96} />
       </mesh>
       {/* حصار آجری + نرده فلزی جلوی سایت (شبیه عکس) */}
       {Array.from({ length: 9 }, (_, i) => {
@@ -773,11 +797,11 @@ function SceneBody(props: BuildingSceneProps & { snap?: boolean }) {
 
   return (
     <>
-      <hemisphereLight args={["#F7F4EE", "#B7A894", 0.72]} />
-      <ambientLight intensity={0.28} />
+      <hemisphereLight args={["#9ec9e8", "#1a2333", 0.55]} />
+      <ambientLight intensity={0.35} />
       <directionalLight
         position={[32, 48, 24]}
-        intensity={1.55}
+        intensity={1.35}
         castShadow={!props.compact}
         shadow-mapSize={[1024, 1024]}
         shadow-bias={-0.00035}
@@ -803,17 +827,17 @@ function SceneBody(props: BuildingSceneProps & { snap?: boolean }) {
       />
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, layout.lowest - 2.5, 0]} receiveShadow>
         <circleGeometry args={[90, 80]} />
-        <meshStandardMaterial color="#E7E2D8" roughness={1} />
+        <meshStandardMaterial color="#121926" roughness={1} />
       </mesh>
       <Grid
         position={[0, layout.lowest - 2.48, 0]}
         args={[180, 180]}
         cellSize={1}
         cellThickness={0.55}
-        cellColor="#DDD6CB"
+        cellColor="#1c2740"
         sectionSize={5}
         sectionThickness={1.05}
-        sectionColor="#CDBCA8"
+        sectionColor="#243352"
         fadeDistance={110}
         infiniteGrid
       />
@@ -861,17 +885,20 @@ function SceneBody(props: BuildingSceneProps & { snap?: boolean }) {
 
 export default function BuildingScene(props: BuildingSceneProps) {
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const holo = Boolean(props.holo);
   return (
     <Canvas
-      shadows={!props.compact}
+      shadows={!props.compact && !holo}
       dpr={props.compact ? [1, 1.25] : [1, 1.7]}
       frameloop={props.active === false ? "never" : "always"}
       camera={{ position: [58, 36, 58], fov: 34, near: 0.1, far: 420 }}
       gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}
     >
-      <color attach="background" args={["#DCE4EA"]} />
-      <fog attach="fog" args={["#DCE4EA", 85, 190]} />
-      <SceneBody {...props} snap={reduce} />
+      <color attach="background" args={[holo ? "#030712" : "#060a12"]} />
+      <fog attach="fog" args={[holo ? "#030712" : "#060a12", 70, 170]} />
+      <HoloContext.Provider value={holo}>
+        <SceneBody {...props} wireframe={holo || props.wireframe} snap={reduce} />
+      </HoloContext.Provider>
     </Canvas>
   );
 }
