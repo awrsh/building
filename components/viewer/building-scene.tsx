@@ -709,7 +709,7 @@ function SceneBody(props: BuildingSceneProps & { snap?: boolean }) {
         simulation: props.simulation,
         index: 0,
         count: layout.sorted.length,
-        floor: sample.floor,
+        floor: sample,
         stages: props.stages,
         showComplete: props.showComplete,
         layers: props.layers,
@@ -806,8 +806,7 @@ function SceneBody(props: BuildingSceneProps & { snap?: boolean }) {
 }
 
 export default function BuildingScene(props: BuildingSceneProps) {
-  const reduce =
-    typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   return (
     <Canvas
       shadows={!props.compact}

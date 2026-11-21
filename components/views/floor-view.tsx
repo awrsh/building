@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BuildingCanvas } from "@/components/viewer/building-canvas";
 import { SitePhoto } from "@/components/site-photo";
 import { Button, Field, Meter, Panel, StatusPill, controlClass } from "@/components/ui";
@@ -18,16 +18,15 @@ export function FloorView({ embedded = false }: { embedded?: boolean }) {
   const [selectedId, setSelectedId] = useState(floors[0]?.id ?? "");
   const selected = floors.find((floor) => floor.id === selectedId) ?? floors[0] ?? null;
   const [draft, setDraft] = useState<Floor | null>(selected);
-  const [activeId, setActiveId] = useState(selected?.id ?? "");
   const [report, setReport] = useState("");
   const [message, setMessage] = useState("");
 
-  if (selected && selected.id !== activeId) {
-    setActiveId(selected.id);
-    setDraft({ ...selected });
+  useEffect(() => {
+    const floor = floors.find((item) => item.id === selectedId) ?? null;
+    setDraft(floor ? { ...floor } : null);
     setReport("");
     setMessage("");
-  }
+  }, [selectedId]);
 
   const images = state.gallery.filter((item) => item.floorId === selected?.id);
 
@@ -142,9 +141,12 @@ export function FloorView({ embedded = false }: { embedded?: boolean }) {
                 >
                   ذخیره تغییرات
                 </Button>
-                <Button tone="ghost" onClick={() => setSelectedId(selected.id)}>
-                  <Link href={`/building?floor=${selected.id}`}>نمایش در مدل</Link>
-                </Button>
+                <Link
+                  href={`/building?floor=${selected.id}`}
+                  className="inline-flex h-10 items-center justify-center border border-line bg-white px-3.5 text-sm hover:border-ink/30"
+                >
+                  نمایش در مدل
+                </Link>
                 <Button
                   tone="danger"
                   onClick={() => {

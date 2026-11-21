@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button, Empty, Field, Meter, Modal, Panel, controlClass } from "@/components/ui";
-import { faDate, faNum, faPercent, faToman, todayIso, uid } from "@/lib/format";
+import { faDate, faNum, faPercent, faToman, uid } from "@/lib/format";
 import { isLowStock, materialCost, stockOf } from "@/lib/metrics";
 import { useProject } from "@/lib/store";
 import type { MaterialItem } from "@/lib/types";
@@ -225,7 +225,7 @@ export function MaterialView({ embedded = false }: { embedded?: boolean }) {
                 setMovement(null);
               }}
             >
-              ثبت {todayIso() ? "" : ""}
+              ثبت
             </Button>
           </div>
         ) : null}

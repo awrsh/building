@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Vazirmatn } from "next/font/google";
+import { Suspense } from "react";
+import { PageFallback } from "@/components/page-fallback";
 import { Providers } from "@/components/providers";
 import { Shell } from "@/components/shell";
 import "./globals.css";
@@ -23,7 +25,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="fa" dir="rtl" className={`${vazir.variable} h-full antialiased`}>
       <body className={`${vazir.className} h-full bg-canvas text-ink`}>
         <Providers>
-          <Shell>{children}</Shell>
+          <Suspense fallback={<PageFallback />}>
+            <Shell>{children}</Shell>
+          </Suspense>
         </Providers>
       </body>
     </html>
