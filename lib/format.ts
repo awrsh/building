@@ -26,7 +26,8 @@ export function faNum(value: number, digits = 0) {
   const sign = value < 0 ? "−" : "";
   const fixed = Math.abs(value).toFixed(digits);
   const [intRaw, frac] = fixed.split(".");
-  const int = intRaw.replace(/\B(?=(\d{3})+(?!\d))/g, "٬");
+  /** جداکنندهٔ سه‌رقمی با نقطه: ۱۲۳.۴۵۶.۷۸۹ */
+  const int = intRaw.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   const body = frac ? `${int}٫${frac}` : int;
   return sign + faDigits(body);
 }
@@ -35,7 +36,7 @@ export function faPercent(value: number, digits = 1) {
   return `${faNum(value, digits)}٪`;
 }
 
-export function faToman(value: number, mode: "full" | "compact" = "compact") {
+export function faToman(value: number, mode: "full" | "compact" = "full") {
   const sign = value < 0 ? "−" : "";
   const n = Math.abs(value);
   if (mode === "full" || n < 1_000_000) {

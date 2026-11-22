@@ -91,12 +91,47 @@ export interface VisualAmounts {
   equipment: number;
 }
 
-function stageWindow(stages: Stage[], id: string) {
-  const sorted = [...stages].sort((a, b) => a.order - b.order);
-  const count = Math.max(1, sorted.length);
-  const index = sorted.findIndex((stage) => stage.id === id);
-  if (index < 0) return null;
-  return { a: index / count, b: (index + 1) / count };
+function dayOffset(from: string, to: string) {
+  return Math.round((Date.parse(to.slice(0, 10)) - Date.parse(from.slice(0, 10))) / 86_400_000);
+}
+
+/** بازه تقویمی گانت برای نگاشت t∈[0,1] به تاریخ ساخت */
+export function simulationCalendarRange(stages: Stage[]) {
+  if (!stages.length) {
+    return { start: "2025-01-01", end: "2025-12-31", totalDays: 364 };
+  }
+  const start = [...stages.map((stage) => stage.startDate)].sort()[0];
+  const end = [...stages.map((stage) => stage.endDate)].sort().at(-1)!;
+  return { start, end, totalDays: Math.max(1, dayOffset(start, end)) };
+}
+
+/** پنجره نرمال‌شده مرحله روی خط‌زمان گانت (بر اساس تاریخ شروع/پایان) */
+export function stageWindow(stages: Stage[], id: string): { a: number; b: number } | null {
+  const stage = stages.find((item) => item.id === id);
+  if (!stage) return null;
+  const { start, totalDays } = simulationCalendarRange(stages);
+  const a = clamp01(dayOffset(start, stage.startDate) / totalDays);
+  let b = clamp01(dayOffset(start, stage.endDate) / totalDays);
+  if (b <= a) b = Math.min(1, a + 1 / totalDays);
+  return { a, b };
+}
+
+export function simulationDateAt(t: number, stages: Stage[]) {
+  const { start, totalDays } = simulationCalendarRange(stages);
+  const days = Math.round(clamp01(t) * totalDays);
+  const date = new Date(`${start.slice(0, 10)}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+export function stageLocalAt(t: number, stage: Stage, stages: Stage[]) {
+  const window = stageWindow(stages, stage.id);
+  if (!window) return 0;
+  return clamp01((t - window.a) / Math.max(0.0001, window.b - window.a));
+}
+
+export function stageStartT(stages: Stage[], stageId: string) {
+  return stageWindow(stages, stageId)?.a ?? 0;
 }
 
 export function visualAmounts(args: {
@@ -114,6 +149,7 @@ export function visualAmounts(args: {
   if (args.simulation != null) {
     const t = args.simulation;
     const band = (id: string, a: number, b: number) => stageWindow(args.stages, id) ?? { a, b };
+    const site = band("site", 0.0, 0.1);
     const foundation = band("foundation", 0.1, 0.2);
     const structure = band("structure", 0.2, 0.3);
     const slabs = band("slabs", 0.3, 0.4);
@@ -123,7 +159,7 @@ export function visualAmounts(args: {
     const facade = band("facade", 0.7, 0.8);
     const equipment = band("equipment", 0.8, 0.9);
     amounts = {
-      excavation: 1 - smoothstep(foundation.a, foundation.b, t),
+      excavation: 1 - smoothstep(site.a, site.b, t),
       foundation: smoothstep(foundation.a, foundation.b, t),
       structure: stagger(t, structure.a, structure.b, args.index, args.count),
       slab: stagger(t, slabs.a, slabs.b, args.index, args.count),
@@ -173,10 +209,33 @@ export function visualAmounts(args: {
   return amounts;
 }
 
-export function activeStageIndex(t: number, count: number) {
-  if (count <= 0) return 0;
-  if (t >= 1) return count - 1;
-  return Math.min(count - 1, Math.floor(t * count + 0.0001));
+/** مرحله فعال روی خط‌زمان گانت؛ در هم‌پوشانی، مرحله با بالاترین order */
+export function activeStageIndex(t: number, stages: Stage[]): number {
+  if (!stages.length) return 0;
+  const sorted = [...stages].sort((a, b) => a.order - b.order);
+  if (t >= 1) return sorted.length - 1;
+
+  let best = 0;
+  let bestScore = Number.NEGATIVE_INFINITY;
+  for (let i = 0; i < sorted.length; i += 1) {
+    const window = stageWindow(stages, sorted[i].id);
+    if (!window) continue;
+    if (t >= window.a && t <= window.b) {
+      const local = (t - window.a) / Math.max(0.0001, window.b - window.a);
+      const score = sorted[i].order * 10 + (1 - Math.abs(local - 0.45));
+      if (score > bestScore) {
+        bestScore = score;
+        best = i;
+      }
+    }
+  }
+  if (bestScore > Number.NEGATIVE_INFINITY) return best;
+
+  for (let i = sorted.length - 1; i >= 0; i -= 1) {
+    const window = stageWindow(stages, sorted[i].id);
+    if (window && t >= window.a) return i;
+  }
+  return 0;
 }
 
 function channels(hex: string): [number, number, number] {

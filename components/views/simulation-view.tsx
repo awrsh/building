@@ -1,22 +1,38 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pause, Play, SkipBack, SkipForward, Square } from "lucide-react";
 import { BuildingCanvas } from "@/components/viewer/building-canvas";
 import { Meter, StatusPill, ToolButton } from "@/components/ui";
 import { faDate, faNum, faPercent } from "@/lib/format";
 import { useProject } from "@/lib/store";
-import { activeStageIndex } from "@/lib/viewer-math";
+import {
+  activeStageIndex,
+  simulationCalendarRange,
+  simulationDateAt,
+  stageLocalAt,
+  stageStartT,
+  stageWindow,
+} from "@/lib/viewer-math";
 
 const layers = { structure: true, walls: true, facade: true, mep: true };
 
+const BAR: Record<string, string> = {
+  completed: "bg-ok",
+  in_progress: "bg-accent",
+  delayed: "bg-danger",
+  on_hold: "bg-warn",
+  not_started: "bg-white/30",
+};
+
 export function SimulationView() {
   const { state } = useProject();
-  const stages = [...state.stages].sort((a, b) => a.order - b.order);
+  const stages = useMemo(() => [...state.stages].sort((a, b) => a.order - b.order), [state.stages]);
+  const range = useMemo(() => simulationCalendarRange(stages), [stages]);
   const [t, setT] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
-  const [presetNonce, setPresetNonce] = useState(0);
   const tRef = useRef(0);
   const speedRef = useRef(1);
   speedRef.current = speed;
@@ -29,7 +45,8 @@ export function SimulationView() {
     const loop = (now: number) => {
       const dt = (now - last) / 1000;
       last = now;
-      tRef.current = Math.min(1, tRef.current + dt * 0.055 * speedRef.current);
+      // یک چرخه کامل ≈ مدت واقعی پروژه روی گانت (با مقیاس فشرده)
+      tRef.current = Math.min(1, tRef.current + dt * 0.035 * speedRef.current);
       acc += dt;
       if (acc >= 0.05) {
         acc = 0;
@@ -52,73 +69,92 @@ export function SimulationView() {
     setT(next);
   }
 
-  const index = activeStageIndex(t, stages.length);
+  const index = activeStageIndex(t, stages);
   const stage = stages[index];
-  const stageLocal =
-    stages.length > 0 ? Math.min(1, Math.max(0, t * stages.length - index)) : 0;
+  const stageLocal = stage ? stageLocalAt(t, stage, stages) : 0;
+  const simDate = stages.length ? simulationDateAt(t, stages) : "";
+  const windows = useMemo(
+    () =>
+      stages.map((item) => ({
+        stage: item,
+        window: stageWindow(stages, item.id) ?? { a: 0, b: 0 },
+      })),
+    [stages],
+  );
 
   function jump(nextIndex: number) {
-    scrub(stages.length ? nextIndex / stages.length : 0);
+    const target = stages[nextIndex];
+    if (!target) return;
+    scrub(stageStartT(stages, target.id));
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2.5 p-2.5 lg:flex-row lg:p-3">
-      <aside className="order-2 flex max-h-72 flex-col overflow-hidden rounded-2xl border border-accent/15 bg-[#0a101c]/92 lg:order-1 lg:max-h-none lg:h-full lg:w-[300px]">
-        <div className="border-b border-line px-3.5 py-3">
-          <div className="text-[10px] tracking-wide text-muted">مرحله · {faNum(index + 1)} / {faNum(stages.length)}</div>
-          <h1 className="mt-1 text-[15px] font-semibold leading-6 tracking-tight text-ink">{stage?.name ?? "—"}</h1>
-          <div className="mt-2 flex items-center gap-2">
+    <div className="flex h-full min-h-0 flex-col gap-2 overflow-hidden p-2 sm:gap-3 sm:p-3 lg:flex-row lg:p-4">
+      <aside className="order-2 flex min-h-0 flex-1 flex-col overflow-hidden border border-line bg-surface lg:order-1 lg:h-full lg:w-[340px] lg:flex-none">
+        <div className="border-b border-line px-4 py-3">
+          <div className="text-[11px] text-muted">
+            مرحله · {faNum(index + 1)} / {faNum(stages.length)} · هم‌تراز گانت
+          </div>
+          <h1 className="mt-1 text-base font-semibold">{stage?.name ?? "—"}</h1>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
             {stage ? <StatusPill status={stage.status} /> : null}
-            <span className="text-[12px] text-muted">{faPercent(t * 100, 0)} کل · {faPercent(stageLocal * 100, 0)} مرحله</span>
+            <span className="text-[12px] text-muted">
+              {faPercent(t * 100, 0)} کل · {faPercent(stageLocal * 100, 0)} مرحله
+            </span>
           </div>
           <div className="mt-3 space-y-2">
-            <Meter value={t * 100} tone="gradient" />
-            <Meter value={stageLocal * 100} tone="accent" />
+            <Meter value={t * 100} />
+            <Meter value={stageLocal * 100} />
           </div>
-          <p className="mt-3 text-[13px] leading-6 text-muted">{stage?.description}</p>
+          <p className="mt-3 hidden text-[13px] leading-6 text-muted sm:block">{stage?.description}</p>
           {stage ? (
-            <div className="mt-3 text-[12px] text-muted">
-              {faDate(stage.startDate)} تا {faDate(stage.endDate)}
+            <div className="mt-3 space-y-1 text-[12px] text-muted">
+              <div>
+                گانت: {faDate(stage.startDate)} تا {faDate(stage.endDate)}
+              </div>
+              {simDate ? <div className="text-ink">تاریخ شبیه‌سازی: {faDate(simDate)}</div> : null}
             </div>
           ) : null}
+          <Link href="/timeline" className="mt-3 inline-block text-[12px] text-accent hover:underline">
+            ویرایش زمان‌بندی گانت
+          </Link>
         </div>
         <div className="min-h-0 flex-1 overflow-auto">
           {stages.map((item, itemIndex) => {
-            const done = itemIndex < index || (itemIndex === index && stageLocal > 0.92);
+            const local = stageLocalAt(t, item, stages);
+            const done = local >= 0.92 || (itemIndex < index && local <= 0);
             const active = itemIndex === index;
+            const win = stageWindow(stages, item.id);
             return (
               <button
                 key={item.id}
                 type="button"
                 onClick={() => jump(itemIndex)}
-                className={`block w-full border-b border-line/60 px-4 py-3 text-right transition-colors ${
-                  active ? "bg-accent/10" : "hover:bg-white/4"
+                className={`block w-full border-b border-line px-4 py-3 text-right ${
+                  active ? "bg-[#F8F1EA]" : "hover:bg-canvas"
                 }`}
               >
                 <div className="flex items-center justify-between gap-3">
-                  <span className="flex items-center gap-2 text-sm text-ink">
-                    <span
-                      className={`grid h-5 w-5 place-items-center rounded-md text-[10px] ${
-                        done
-                          ? "bg-ok/20 text-ok"
-                          : active
-                            ? "bg-accent/20 text-accent"
-                            : "bg-white/8 text-muted"
-                      }`}
-                    >
-                      {faNum(itemIndex + 1)}
-                    </span>
-                    {item.name}
+                  <span className="text-sm">{item.name}</span>
+                  <span className="text-[11px] text-muted">
+                    {active ? faPercent(local * 100, 0) : done ? "✓" : faPercent(item.progress, 0)}
                   </span>
-                  <span className="text-[11px] text-accent">{faPercent(item.progress, 0)}</span>
                 </div>
+                {win ? (
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/5">
+                    <div
+                      className={`h-full rounded-full ${active ? "bg-accent" : done ? "bg-ok" : "bg-black/15"}`}
+                      style={{ width: `${Math.max(4, local * 100)}%` }}
+                    />
+                  </div>
+                ) : null}
               </button>
             );
           })}
         </div>
       </aside>
 
-      <div className="order-1 flex min-h-[480px] flex-1 flex-col overflow-hidden rounded-2xl border border-accent/20 bg-[#030712] lg:order-2">
+      <div className="order-1 flex h-[48dvh] min-h-[260px] shrink-0 flex-col border border-line bg-[#E6E3DC] sm:h-[52dvh] lg:order-2 lg:h-auto lg:min-h-0 lg:flex-1">
         <div className="relative min-h-0 flex-1">
           <BuildingCanvas
             floors={state.floors}
@@ -132,59 +168,52 @@ export function SimulationView() {
             showComplete={false}
             simulation={t}
             preset="iso"
-            presetNonce={presetNonce}
-            autoRotate={playing && t < 0.08}
+            presetNonce={0}
           />
-          <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-3">
-            <div className="max-w-md rounded-xl border border-accent/25 bg-[#030712]/85 px-3 py-2 backdrop-blur">
-              <div className="text-[11px] text-accent">شبیه‌سازی ساخت</div>
+          <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-between gap-2 p-2 sm:p-3">
+            <div className="rounded-xl border border-line bg-surface/90 px-3 py-2 backdrop-blur">
+              <div className="text-[11px] text-muted">شبیه‌سازی بر اساس گانت</div>
               <div className="mt-0.5 text-sm font-semibold text-ink">{stage?.name ?? "آماده‌سازی"}</div>
-              <div className="mt-1 text-[12px] text-muted">{faPercent(t * 100, 0)} تکمیل انیمیشن</div>
-            </div>
-            {!playing && t === 0 ? (
-              <div className="pointer-events-auto">
-                <ToolButton
-                  onClick={() => {
-                    setPresetNonce((n) => n + 1);
-                    setPlaying(true);
-                  }}
-                >
-                  <Play size={13} />
-                  پخش از ابتدا
-                </ToolButton>
+              <div className="mt-1 text-[12px] text-muted">
+                {simDate ? faDate(simDate) : "—"} · {faNum(range.totalDays)} روز پروژه
               </div>
-            ) : null}
+            </div>
           </div>
         </div>
-        <div className="space-y-3 border-t border-line bg-[#0a101c]/95 p-3">
-          <div className="space-y-2">
-            <div className="flex">
-              {stages.map((item, itemIndex) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  title={item.name}
-                  className="flex flex-1 flex-col items-center gap-1"
-                  onClick={() => jump(itemIndex)}
-                >
-                  <span
-                    className={`h-2 w-2 rounded-full ${
-                      itemIndex < index ? "bg-ok" : itemIndex === index ? "bg-accent" : "bg-white/20"
-                    }`}
-                  />
-                </button>
-              ))}
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={1000}
-              value={Math.round(t * 1000)}
-              onChange={(event) => scrub(Number(event.target.value) / 1000)}
-              className="w-full"
-              aria-label="خط زمان ساخت"
+        <div className="space-y-2 border-t border-line bg-surface p-2 sm:space-y-3 sm:p-3">
+          <div className="relative h-10 overflow-hidden rounded-lg border border-line bg-canvas">
+            {windows.map(({ stage: item, window }) => (
+              <button
+                key={item.id}
+                type="button"
+                title={`${item.name} · ${faDate(item.startDate)} → ${faDate(item.endDate)}`}
+                onClick={() => scrub(window.a)}
+                className={`absolute top-1.5 h-7 rounded-sm opacity-80 transition hover:opacity-100 ${BAR[item.status] ?? "bg-accent"}`}
+                style={{
+                  right: `${window.a * 100}%`,
+                  width: `${Math.max(1.2, (window.b - window.a) * 100)}%`,
+                }}
+              />
+            ))}
+            <div
+              className="pointer-events-none absolute inset-y-0 w-0.5 bg-ink"
+              style={{ right: `${t * 100}%` }}
             />
           </div>
+          <div className="flex justify-between text-[10px] text-muted">
+            <span>{faDate(range.start)}</span>
+            <span>{simDate ? faDate(simDate) : "—"}</span>
+            <span>{faDate(range.end)}</span>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={1000}
+            value={Math.round(t * 1000)}
+            onChange={(event) => scrub(Number(event.target.value) / 1000)}
+            className="w-full"
+            aria-label="خط زمان گانت ساخت"
+          />
           <div className="flex flex-wrap items-center gap-2">
             <ToolButton
               onClick={() => {
@@ -199,18 +228,22 @@ export function SimulationView() {
               onClick={() => {
                 setPlaying(false);
                 scrub(0);
-                setPresetNonce((n) => n + 1);
               }}
             >
               <Square size={13} />
               توقف
             </ToolButton>
-            <ToolButton onClick={() => jump(Math.max(0, index - (t > index / stages.length + 0.02 ? 0 : 1)))}>
-              <SkipBack size={13} />
+            <ToolButton
+              onClick={() => {
+                const prev = Math.max(0, index - (stageLocal > 0.02 ? 0 : 1));
+                jump(prev);
+              }}
+            >
+              <SkipForward size={13} />
               مرحله قبل
             </ToolButton>
             <ToolButton onClick={() => jump(Math.min(stages.length - 1, index + 1))}>
-              <SkipForward size={13} />
+              <SkipBack size={13} />
               مرحله بعد
             </ToolButton>
             <label className="mr-auto flex items-center gap-2 text-[12px] text-muted">
@@ -218,7 +251,7 @@ export function SimulationView() {
               <select
                 value={speed}
                 onChange={(event) => setSpeed(Number(event.target.value))}
-                className="h-8 rounded-lg border border-line bg-[#0b1220] px-2 text-ink"
+                className="h-8 border border-line bg-white px-2 text-ink"
               >
                 <option value={0.5}>۰٫۵×</option>
                 <option value={1}>۱×</option>
